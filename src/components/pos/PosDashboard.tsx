@@ -133,10 +133,17 @@ export function PosDashboard() {
         ) : pendingOrders.length === 0 ? (
           <div className="rounded-xl border border-dashed border-white/15 py-16 text-center">
             <p className="font-display text-xl text-gem-mist/60">
-              No pending orders
+              Waiting for orders
             </p>
-            <p className="mt-2 text-sm text-gem-mist/40">
-              New designs appear here when customers tap Finalize Layout
+            <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-gem-mist/40">
+              Leave this tab open. When a customer finalizes on{" "}
+              <a href="/customize" className="text-gem-gold underline">
+                /customize
+              </a>
+              , their order appears here automatically.
+            </p>
+            <p className="mt-4 text-xs text-gem-mist/30">
+              Demo tip: open this page before finalizing on the phone
             </p>
           </div>
         ) : (
@@ -161,16 +168,24 @@ export function PosDashboard() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  disabled={processingId === order.id}
-                  onClick={() => handleMarkPaid(order)}
-                  className="shrink-0 rounded-xl bg-gem-gold px-6 py-3 text-sm font-semibold uppercase tracking-wider text-gem-ink transition hover:bg-gem-gold/90 disabled:opacity-50"
-                >
-                  {processingId === order.id
-                    ? "Processing…"
-                    : "Mark Paid & Send to Studio"}
-                </button>
+                <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                  <button
+                    type="button"
+                    disabled={processingId === order.id}
+                    onClick={() => handleMarkPaid(order)}
+                    className="rounded-xl bg-gem-gold px-6 py-3 text-sm font-semibold uppercase tracking-wider text-gem-ink transition hover:bg-gem-gold/90 disabled:opacity-50"
+                  >
+                    {processingId === order.id
+                      ? "Processing…"
+                      : "Mark Paid & Send to Studio"}
+                  </button>
+                  <p className="text-center text-xs text-gem-mist/30 sm:text-right">
+                    Then check{" "}
+                    <a href="/admin" className="text-gem-gold underline">
+                      /admin
+                    </a>
+                  </p>
+                </div>
               </li>
             ))}
           </ul>

@@ -260,9 +260,16 @@ export function AdminDashboard() {
 
               {studioOrders.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/15 py-12 text-center">
-                  <p className="text-gem-mist/60">No orders in studio</p>
-                  <p className="mt-2 text-sm text-gem-mist/40">
-                    Orders appear here after cashier marks them paid on POS
+                  <p className="text-gem-mist/60">No orders in studio yet</p>
+                  <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-gem-mist/40">
+                    After the cashier marks an order paid on{" "}
+                    <a href="/pos" className="text-gem-gold underline">
+                      /pos
+                    </a>
+                    , it shows up here with the bench recipe.
+                  </p>
+                  <p className="mt-4 text-xs text-gem-mist/30">
+                    Demo order: customize → pos → admin
                   </p>
                 </div>
               ) : (

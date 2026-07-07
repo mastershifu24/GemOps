@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 interface CheckoutScreenProps {
   orderCode: string;
   filledCount: number;
@@ -31,6 +33,21 @@ export function CheckoutScreen({
         <p className="text-gem-mist">
           {filledCount} / {totalSlots}
         </p>
+      </div>
+
+      <div className="mt-6 w-full max-w-xs rounded-xl border border-gem-gold/30 bg-gem-gold/5 p-4 text-left text-sm">
+        <p className="text-xs uppercase tracking-wider text-gem-gold">
+          Next step
+        </p>
+        <p className="mt-1 text-gem-mist/80">
+          Cashier marks this order paid on the POS screen.
+        </p>
+        <Link
+          href="/pos"
+          className="mt-3 inline-block text-sm font-medium text-gem-gold underline underline-offset-4"
+        >
+          Open POS →
+        </Link>
       </div>
 
       <button
