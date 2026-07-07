@@ -1,0 +1,45 @@
+"use client";
+
+interface CheckoutScreenProps {
+  orderCode: string;
+  filledCount: number;
+  totalSlots: number;
+  templateName: string;
+  onStartOver: () => void;
+}
+
+export function CheckoutScreen({
+  orderCode,
+  filledCount,
+  totalSlots,
+  templateName,
+  onStartOver,
+}: CheckoutScreenProps) {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gem-ink px-6 text-center">
+      <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">Order Locked</p>
+      <h1 className="mt-4 font-display text-5xl text-gem-mist">#{orderCode}</h1>
+      <p className="mt-6 max-w-xs text-base leading-relaxed text-gem-mist/70">
+        Show this screen to your store cashier to complete payment and send your
+        design to the studio.
+      </p>
+
+      <div className="mt-8 w-full max-w-xs rounded-xl border border-white/10 bg-gem-slate p-4 text-left text-sm">
+        <p className="text-gem-mist/50">Template</p>
+        <p className="text-gem-mist">{templateName}</p>
+        <p className="mt-3 text-gem-mist/50">Beads placed</p>
+        <p className="text-gem-mist">
+          {filledCount} / {totalSlots}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onStartOver}
+        className="mt-10 text-sm text-gem-mist/50 underline underline-offset-4 hover:text-gem-mist"
+      >
+        Start a new design
+      </button>
+    </main>
+  );
+}
