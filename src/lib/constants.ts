@@ -189,3 +189,8 @@ export function buildSampleLayout(
 export const SPLINE_SCENE_URL =
   process.env.NEXT_PUBLIC_SPLINE_SCENE_URL ??
   "https://prod.spline.design/vCEn64MbFJ38qnjV/scene.splinecode";
+
+/** iframe fallback if react-spline fails to load (WebGL, network, etc.) */
+export const SPLINE_FALLBACK_EMBED_URL =
+  process.env.NEXT_PUBLIC_SPLINE_FALLBACK_EMBED_URL ??
+  "https://my.spline.design/floatingbasketball-2e7G7zCpIzx26IAKccqGzzwC/";
