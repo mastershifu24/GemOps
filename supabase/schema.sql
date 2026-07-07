@@ -191,6 +191,10 @@ CREATE POLICY "Public read active components"
   ON public.components FOR SELECT
   USING (is_active = true);
 
+CREATE POLICY "Admin read all components"
+  ON public.components FOR SELECT
+  USING (true);
+
 CREATE POLICY "Public read active templates"
   ON public.design_templates FOR SELECT
   USING (is_active = true);

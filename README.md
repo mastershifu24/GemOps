@@ -61,7 +61,7 @@ The customizer works **without** Supabase using in-memory seed data. Orders pers
 |-------|------|--------|
 | `/customize` | Customer | ✅ MVP complete |
 | `/pos` | Retailer cashier | ✅ Live queue |
-| `/admin` | Studio logistics | Stub (next iteration) |
+| `/admin` | Studio logistics | ✅ Assembly script + component CRUD |
 
 ## Architecture Notes
 
