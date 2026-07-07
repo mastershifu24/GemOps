@@ -188,4 +188,4 @@ export function buildSampleLayout(
 
 export const SPLINE_SCENE_URL =
   process.env.NEXT_PUBLIC_SPLINE_SCENE_URL ??
-  "https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode";
+  "https://prod.spline.design/vCEn64MbFJ38qnjV/scene.splinecode";
