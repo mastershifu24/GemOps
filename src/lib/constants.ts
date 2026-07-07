@@ -173,6 +173,19 @@ export function toSlotAssignment(
   };
 }
 
+/** Alternating A/B pattern for solo demo */
+export function buildSampleLayout(
+  components: Component[] = SEED_COMPONENTS,
+  slotCount = 24
+): SlotAssignment[] {
+  const onyx = components.find((c) => c.name === "Onyx") ?? components[0];
+  const moon = components.find((c) => c.name === "Moonstone") ?? components[1];
+
+  return Array.from({ length: slotCount }, (_, i) =>
+    toSlotAssignment(i % 2 === 0 ? onyx : moon, i)
+  );
+}
+
 export const SPLINE_SCENE_URL =
   process.env.NEXT_PUBLIC_SPLINE_SCENE_URL ??
   "https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode";

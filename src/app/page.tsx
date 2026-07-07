@@ -42,14 +42,30 @@ export default function HomePage() {
             Phygital Studio
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-gem-mist/60">
-            Demo the full store flow in ~5 minutes.{" "}
-            <span className="text-gem-mist/80">
-              Open steps 2 &amp; 3 first, then design on your phone.
-            </span>
+            Custom jewelry — designed in-store, built in studio.
           </p>
         </div>
 
-        <ol className="mt-10 space-y-4">
+        <Link
+          href="/demo"
+          className="mt-8 block rounded-xl border border-gem-gold/50 bg-gem-gold/10 p-5 text-center transition hover:border-gem-gold"
+        >
+          <p className="text-xs uppercase tracking-wider text-gem-gold">
+            Easiest way to try it
+          </p>
+          <p className="mt-1 text-lg font-medium text-gem-mist">
+            Solo demo — one screen, one click
+          </p>
+          <p className="mt-1 text-sm text-gem-mist/50">
+            Full flow without a second device
+          </p>
+        </Link>
+
+        <p className="mt-8 text-center text-xs uppercase tracking-wider text-gem-mist/40">
+          Or run the real 3-screen flow
+        </p>
+
+        <ol className="mt-4 space-y-4">
           {steps.map((item) => (
             <li key={item.step}>
               <Link
@@ -84,10 +100,6 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
-
-        <p className="mt-8 text-center text-xs text-gem-mist/40">
-          Share this page: gemops.vercel.app
-        </p>
       </div>
     </main>
   );
