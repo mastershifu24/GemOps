@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { BraceletSlotStrip } from "@/components/customizer/BraceletSlotStrip";
+import { SplineViewer } from "@/components/customizer/SplineViewer";
 import {
   buildAssemblyScript,
   buildSampleLayout,
@@ -9,9 +11,22 @@ import {
   SEED_TEMPLATES,
 } from "@/lib/constants";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import type { DesignTemplate, Order } from "@/types/database";
+import type { DesignTemplate, Order, SlotState } from "@/types/database";
 
 type DemoPhase = "idle" | "ordered" | "paid" | "done";
+
+const PHASES = [
+  { id: "idle" as const, label: "Design", step: 1 },
+  { id: "ordered" as const, label: "Cashier", step: 2 },
+  { id: "paid" as const, label: "Studio", step: 3 },
+];
+
+function phaseIndex(phase: DemoPhase): number {
+  if (phase === "idle") return 0;
+  if (phase === "ordered") return 1;
+  if (phase === "paid" || phase === "done") return 2;
+  return 0;
+}
 
 export function DemoWalkthrough() {
   const [templateId, setTemplateId] = useState(SEED_TEMPLATES[0].id);
@@ -23,6 +38,9 @@ export function DemoWalkthrough() {
   const [error, setError] = useState<string | null>(null);
 
   const sampleLayout = buildSampleLayout(undefined, slotCount);
+  const previewSlots: SlotState[] =
+    phase === "idle" ? sampleLayout : (activeOrder?.slot_layout ?? sampleLayout);
+  const currentStep = phaseIndex(phase);
 
   const loadTemplate = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
@@ -161,155 +179,195 @@ export function DemoWalkthrough() {
   };
 
   return (
-    <div className="min-h-screen bg-gem-ink px-4 py-8">
-      <div className="mx-auto max-w-2xl">
+    <div className="flex min-h-screen flex-col bg-gem-ink">
+      <header className="sticky top-0 z-20">
+        <SplineViewer className="h-[32vh] min-h-[200px] w-full" />
+      </header>
+
+      <main className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-5">
         <div className="text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
-            GemOps Demo
+            GemOps
           </p>
-          <h1 className="mt-2 font-display text-3xl text-gem-mist">
-            Full store flow, one screen
+          <h1 className="mt-2 font-display text-3xl text-gem-mist sm:text-4xl">
+            Phygital Studio
           </h1>
-          <p className="mt-2 text-sm text-gem-mist/60">
-            No second device needed. Click through customer → cashier → studio.
+          <p className="mt-2 text-sm text-gem-mist/50">
+            Full store flow · one screen · no second device
           </p>
         </div>
 
+        {/* Progress rail */}
+        <div className="mx-auto flex w-full max-w-md items-center justify-between px-2">
+          {PHASES.map((p, i) => {
+            const done = currentStep > i || phase === "done";
+            const active = currentStep === i && phase !== "done";
+            return (
+              <div key={p.id} className="flex flex-1 items-center">
+                <div className="flex flex-col items-center gap-1.5">
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                      done
+                        ? "bg-gem-gold text-gem-ink"
+                        : active
+                          ? "bg-gem-gold/20 text-gem-gold ring-2 ring-gem-gold"
+                          : "bg-gem-slate text-gem-mist/30"
+                    }`}
+                  >
+                    {done && phase !== "idle" && i < currentStep ? "✓" : p.step}
+                  </span>
+                  <span
+                    className={`text-[10px] uppercase tracking-wider ${
+                      active || done ? "text-gem-gold" : "text-gem-mist/30"
+                    }`}
+                  >
+                    {p.label}
+                  </span>
+                </div>
+                {i < PHASES.length - 1 && (
+                  <div
+                    className={`mx-2 mb-5 h-px flex-1 transition-colors ${
+                      currentStep > i ? "bg-gem-gold/60" : "bg-white/10"
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bracelet preview */}
+        <section className="rounded-xl border border-white/10 bg-gem-slate p-4">
+          <div className="mb-2 flex items-baseline justify-between">
+            <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
+              {templateName}
+            </p>
+            <p className="text-xs text-gem-mist/50">
+              {slotCount} slots · Onyx / Moonstone
+            </p>
+          </div>
+          <BraceletSlotStrip slots={previewSlots} activeSlotIndex={null} />
+        </section>
+
         {error && (
-          <p className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </p>
         )}
 
-        <ol className="mt-8 space-y-4">
-          {/* Step 1 */}
-          <li
-            className={`rounded-xl border p-5 ${
-              phase === "idle"
-                ? "border-gem-gold/50 bg-gem-gold/5"
-                : "border-white/10 bg-gem-slate opacity-80"
-            }`}
-          >
-            <p className="text-xs uppercase tracking-wider text-gem-gold">
-              Step 1 · Customer
-            </p>
-            <p className="mt-2 text-gem-mist">
-              A customer designs a 24-bead Onyx / Moonstone bracelet and
-              finalizes.
-            </p>
-
-            {phase === "idle" ? (
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handleCreateSample}
-                  className="flex-1 rounded-xl bg-gem-gold py-3 text-sm font-semibold text-gem-ink disabled:opacity-50"
-                >
-                  {loading ? "Creating…" : "Create sample order"}
-                </button>
-                <Link
-                  href="/customize"
-                  className="flex-1 rounded-xl border border-white/15 py-3 text-center text-sm text-gem-mist hover:border-white/30"
-                >
-                  Or design your own →
-                </Link>
-              </div>
-            ) : (
-              <p className="mt-3 font-display text-2xl text-gem-gold">
-                #{activeOrder?.order_code} · {templateName}
+        {/* Phase content */}
+        {phase === "idle" && (
+          <section className="flex flex-1 flex-col gap-4">
+            <div className="rounded-xl border border-gem-gold/30 bg-gem-gold/5 p-6 text-center">
+              <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
+                Step 1
               </p>
-            )}
-          </li>
+              <p className="mt-3 font-display text-xl text-gem-mist">
+                Customer finalizes their design
+              </p>
+              <p className="mt-2 text-sm text-gem-mist/50">
+                Tap below to simulate a completed bracelet order
+              </p>
+            </div>
 
-          {/* Step 2 */}
-          <li
-            className={`rounded-xl border p-5 ${
-              phase === "ordered"
-                ? "border-gem-gold/50 bg-gem-gold/5"
-                : "border-white/10 bg-gem-slate"
-            } ${phase === "idle" ? "opacity-40" : ""}`}
-          >
-            <p className="text-xs uppercase tracking-wider text-gem-gold">
-              Step 2 · Cashier
-            </p>
-            <p className="mt-2 text-gem-mist">
-              Cashier sees the order and marks it paid.
-            </p>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleCreateSample}
+              className="w-full rounded-xl bg-gem-gold py-4 text-sm font-semibold uppercase tracking-wider text-gem-ink transition hover:bg-gem-gold/90 disabled:opacity-50"
+            >
+              {loading ? "Finalizing…" : "Finalize Sample Layout"}
+            </button>
 
-            {phase === "ordered" && activeOrder && (
+            <Link
+              href="/customize"
+              className="block text-center text-sm text-gem-mist/50 underline underline-offset-4 hover:text-gem-mist"
+            >
+              Or open the full customizer →
+            </Link>
+          </section>
+        )}
+
+        {phase === "ordered" && activeOrder && (
+          <section className="flex flex-1 flex-col gap-4">
+            <div className="rounded-xl border border-white/10 bg-gem-slate p-6 text-center">
+              <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
+                Order Locked
+              </p>
+              <p className="mt-3 font-display text-5xl text-gem-mist">
+                #{activeOrder.order_code}
+              </p>
+              <p className="mt-4 text-sm text-gem-mist/50">
+                Customer shows this to the cashier
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-gem-gold/30 bg-gem-gold/5 p-5">
+              <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
+                Step 2 · Cashier
+              </p>
+              <p className="mt-2 text-sm text-gem-mist/60">
+                Order received — ready for payment
+              </p>
               <button
                 type="button"
                 disabled={loading}
                 onClick={handleMarkPaid}
-                className="mt-4 w-full rounded-xl bg-gem-gold py-3 text-sm font-semibold text-gem-ink disabled:opacity-50"
+                className="mt-4 w-full rounded-xl bg-gem-gold py-4 text-sm font-semibold uppercase tracking-wider text-gem-ink disabled:opacity-50"
               >
-                Mark Paid & Send to Studio
+                {loading ? "Processing…" : "Mark Paid & Send to Studio"}
               </button>
-            )}
-            {(phase === "paid" || phase === "done") && (
-              <p className="mt-3 text-sm text-gem-mist/50">✓ Sent to studio</p>
-            )}
-          </li>
-
-          {/* Step 3 */}
-          <li
-            className={`rounded-xl border p-5 ${
-              phase === "paid"
-                ? "border-gem-gold/50 bg-gem-gold/5"
-                : "border-white/10 bg-gem-slate"
-            } ${phase === "idle" || phase === "ordered" ? "opacity-40" : ""}`}
-          >
-            <p className="text-xs uppercase tracking-wider text-gem-gold">
-              Step 3 · Studio
-            </p>
-            <p className="mt-2 text-gem-mist">
-              Bench stringer reads the recipe and builds it.
-            </p>
-
-            {(phase === "paid" || phase === "done") && activeOrder && (
-              <>
-                <div className="mt-4 rounded-lg bg-gem-ink p-4">
-                  <p className="font-mono text-base leading-relaxed text-gem-mist sm:text-lg">
-                    {activeOrder.assembly_script}
-                  </p>
-                </div>
-                {phase === "paid" && (
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={handleComplete}
-                    className="mt-4 w-full rounded-xl border border-white/15 py-3 text-sm text-gem-mist hover:border-white/30 disabled:opacity-50"
-                  >
-                    Mark Assembly Complete
-                  </button>
-                )}
-                {phase === "done" && (
-                  <p className="mt-3 text-sm text-gem-mist/50">✓ Order complete</p>
-                )}
-              </>
-            )}
-          </li>
-        </ol>
-
-        {phase === "done" && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="mt-6 w-full text-sm text-gem-mist/50 underline underline-offset-4"
-          >
-            Run demo again
-          </button>
+            </div>
+          </section>
         )}
 
-        <p className="mt-8 text-center text-xs text-gem-mist/40">
-          In a real store, customers only see{" "}
-          <Link href="/customize" className="text-gem-gold underline">
-            /customize
-          </Link>
-          . Staff use separate POS and admin screens.
+        {(phase === "paid" || phase === "done") && activeOrder && (
+          <section className="flex flex-1 flex-col gap-4">
+            <div className="rounded-xl border border-white/10 bg-gem-slate p-6">
+              <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
+                Step 3 · 60-Second Assembly Script
+              </p>
+              <p className="mt-1 font-display text-2xl text-gem-gold">
+                #{activeOrder.order_code}
+              </p>
+
+              <div className="mt-5 rounded-lg bg-gem-ink p-5 ring-1 ring-gem-gold/20">
+                <p className="font-mono text-base leading-relaxed text-gem-mist sm:text-lg">
+                  {activeOrder.assembly_script}
+                </p>
+              </div>
+
+              {phase === "paid" ? (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleComplete}
+                  className="mt-5 w-full rounded-xl border border-white/15 py-3 text-sm font-medium text-gem-mist transition hover:border-white/30 disabled:opacity-50"
+                >
+                  Mark Assembly Complete
+                </button>
+              ) : (
+                <div className="mt-5 text-center">
+                  <p className="font-display text-lg text-gem-gold">
+                    Strand complete ✦
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="mt-4 text-sm text-gem-mist/50 underline underline-offset-4 hover:text-gem-mist"
+                  >
+                    Run demo again
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        <p className="mt-auto text-center text-[11px] text-gem-mist/30">
+          Production: customers → /customize · staff → /pos & /admin
         </p>
-      </div>
+      </main>
     </div>
   );
 }
