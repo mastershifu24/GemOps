@@ -12,6 +12,7 @@ import {
   toSlotAssignment,
 } from "@/lib/constants";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { StoreHeader } from "@/components/brand/StoreHeader";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
@@ -260,7 +261,9 @@ export function CustomerCustomizer() {
         />
       </header>
 
-      <main className="flex flex-1 flex-col gap-5 px-4 pb-8 pt-4">
+      <main className="flex flex-1 flex-col gap-5 px-4 pb-8 pt-3">
+        <StoreHeader />
+
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
             Design Template

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STORE_NAME, STORE_TAGLINE } from "@/lib/branding";
 
 const steps = [
   {
@@ -36,19 +37,34 @@ export default function HomePage() {
       <div className="mx-auto max-w-lg">
         <div className="text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
-            GemOps
+            {STORE_NAME}
           </p>
           <h1 className="mt-3 font-display text-4xl text-gem-mist">
             Phygital Studio
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-gem-mist/60">
-            Custom jewelry — designed in-store, built in studio.
+            {STORE_TAGLINE}
           </p>
         </div>
 
         <Link
+          href="/qr"
+          className="mt-8 block rounded-xl border border-white/10 bg-gem-slate p-5 text-center transition hover:border-gem-gold/40"
+        >
+          <p className="text-xs uppercase tracking-wider text-gem-gold">
+            In-store counter
+          </p>
+          <p className="mt-1 text-lg font-medium text-gem-mist">
+            Customer QR code
+          </p>
+          <p className="mt-1 text-sm text-gem-mist/50">
+            Print or display at register — scans to /customize
+          </p>
+        </Link>
+
+        <Link
           href="/demo"
-          className="mt-8 block rounded-xl border border-gem-gold/50 bg-gem-gold/10 p-5 text-center transition hover:border-gem-gold"
+          className="mt-4 block rounded-xl border border-gem-gold/50 bg-gem-gold/10 p-5 text-center transition hover:border-gem-gold"
         >
           <p className="text-xs uppercase tracking-wider text-gem-gold">
             Easiest way to try it

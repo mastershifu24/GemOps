@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { STORE_NAME } from "@/lib/branding";
 
 interface CheckoutScreenProps {
   orderCode: string;
@@ -19,7 +20,12 @@ export function CheckoutScreen({
 }: CheckoutScreenProps) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gem-ink px-6 text-center">
-      <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">Order Locked</p>
+      <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
+        {STORE_NAME}
+      </p>
+      <p className="mt-4 text-xs uppercase tracking-[0.35em] text-gem-mist/50">
+        Order Locked
+      </p>
       <h1 className="mt-4 font-display text-5xl text-gem-mist">#{orderCode}</h1>
       <p className="mt-6 max-w-xs text-base leading-relaxed text-gem-mist/70">
         Show this screen to your store cashier to complete payment and send your

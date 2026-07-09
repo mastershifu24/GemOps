@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -105,6 +106,12 @@ export function PosDashboard() {
             <h1 className="mt-1 font-display text-2xl text-gem-mist">
               Order Queue
             </h1>
+            <Link
+              href="/qr"
+              className="mt-2 inline-block text-xs text-gem-gold underline underline-offset-4"
+            >
+              Open customer QR →
+            </Link>
           </div>
           <div className="text-right text-sm">
             <p className="text-gem-mist/50">Pending</p>
