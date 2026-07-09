@@ -12,7 +12,7 @@ export function StrandCountToggle({ value, onChange }: StrandCountToggleProps) {
     <div>
       <p className="mb-2 text-xs text-gem-mist/50">Strands</p>
       <p className="mb-2 text-[10px] text-gem-mist/40">
-        Toggle single or double — use the strand strip below or the 3D ring; both stay in sync.
+        Toggle single or double — build on the cord line under the ring, or tap the ring directly.
       </p>
       <div className="flex gap-1 rounded-xl border border-white/10 bg-gem-slate p-1">
         {([1, 2] as const).map((count) => {

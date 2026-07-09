@@ -7,7 +7,7 @@ interface BraceletSlotStripProps {
   activeSlotIndex: number | null;
   onSlotTap?: (index: number) => void;
   /** Overlay on 3D hero — tighter beads, higher contrast thread */
-  variant?: "default" | "overlay";
+  variant?: "default" | "overlay" | "strand";
 }
 
 export function BraceletSlotStrip({
@@ -17,6 +17,7 @@ export function BraceletSlotStrip({
   variant = "default",
 }: BraceletSlotStripProps) {
   const isOverlay = variant === "overlay";
+  const isStrand = variant === "strand";
   const compact = slots.length > 30;
 
   const emptySize = compact
@@ -52,8 +53,12 @@ export function BraceletSlotStrip({
         } ${isOverlay ? "py-2" : "py-3"}`}
       >
         <div
-          className={`pointer-events-none absolute left-2 right-2 top-1/2 h-px -translate-y-1/2 ${
-            isOverlay ? "bg-white/35" : "bg-gem-gold/25"
+          className={`pointer-events-none absolute left-2 right-2 top-1/2 -translate-y-1/2 ${
+            isStrand
+              ? "h-[2px] bg-gradient-to-r from-transparent via-gem-gold/80 to-transparent shadow-[0_0_8px_rgba(201,169,98,0.35)]"
+              : isOverlay
+                ? "h-px bg-white/35"
+                : "h-px bg-gem-gold/25"
           }`}
         />
 

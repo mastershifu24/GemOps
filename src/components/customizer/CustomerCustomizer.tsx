@@ -508,9 +508,9 @@ export function CustomerCustomizer() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gem-ink">
-      <header className="sticky top-0 z-20">
+      <header className="sticky top-0 z-20 bg-gem-ink shadow-lg shadow-black/40">
         <SplineViewer
-          className="h-[46vh] min-h-[300px] w-full sm:h-[42vh]"
+          className="h-[36vh] min-h-[240px] w-full sm:h-[34vh]"
           strand={{
             slots,
             activeSlotIndex: nextEmptyIndex,
@@ -524,6 +524,18 @@ export function CustomerCustomizer() {
             onSlotTap: handleRingSlotTap,
           }}
         />
+        {showStrandToggle && (
+          <div className="border-t border-white/10 bg-gem-slate/90 px-4 py-3 backdrop-blur-sm">
+            <StrandStripBuilder
+              placement="hero"
+              slots={slots}
+              perRingSlotCount={perRingSlotCount}
+              strandCount={strandCount}
+              activeSlotIndex={nextEmptyIndex}
+              onSlotTap={handleStripSlotTap}
+            />
+          </div>
+        )}
       </header>
 
       <main className="flex flex-1 flex-col gap-5 px-4 pb-8 pt-3">
@@ -556,16 +568,6 @@ export function CustomerCustomizer() {
           strandCount={strandCount}
           onStrandCountChange={handleStrandCountChange}
         />
-
-        {showStrandToggle && (
-          <StrandStripBuilder
-            slots={slots}
-            perRingSlotCount={perRingSlotCount}
-            strandCount={strandCount}
-            activeSlotIndex={nextEmptyIndex}
-            onSlotTap={handleStripSlotTap}
-          />
-        )}
 
         {showMeasureGuide && (
           <WristMeasureGuide
