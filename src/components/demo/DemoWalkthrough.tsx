@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BraceletSlotStrip } from "@/components/customizer/BraceletSlotStrip";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
 import {
   buildAssemblyScript,
@@ -181,7 +180,18 @@ export function DemoWalkthrough() {
   return (
     <div className="flex min-h-screen flex-col bg-gem-ink">
       <header className="sticky top-0 z-20">
-        <SplineViewer className="h-[32vh] min-h-[200px] w-full" />
+        <SplineViewer
+          className="h-[44vh] min-h-[280px] w-full sm:h-[38vh]"
+          strand={{
+            slots: previewSlots,
+            activeSlotIndex: null,
+            filledCount:
+              phase === "idle"
+                ? slotCount
+                : activeOrder?.filled_slot_count ?? slotCount,
+            totalSlots: slotCount,
+          }}
+        />
       </header>
 
       <main className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-5">
@@ -235,19 +245,6 @@ export function DemoWalkthrough() {
             );
           })}
         </div>
-
-        {/* Bracelet preview */}
-        <section className="rounded-xl border border-white/10 bg-gem-slate p-4">
-          <div className="mb-2 flex items-baseline justify-between">
-            <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-              {templateName}
-            </p>
-            <p className="text-xs text-gem-mist/50">
-              {slotCount} slots · Onyx / Moonstone
-            </p>
-          </div>
-          <BraceletSlotStrip slots={previewSlots} activeSlotIndex={null} />
-        </section>
 
         {error && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">

@@ -12,7 +12,6 @@ import {
   toSlotAssignment,
 } from "@/lib/constants";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { BraceletSlotStrip } from "@/components/customizer/BraceletSlotStrip";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
@@ -249,7 +248,16 @@ export function CustomerCustomizer() {
     <div className="flex min-h-screen flex-col bg-gem-ink">
       {/* Top-anchored Spline 3D viewer */}
       <header className="sticky top-0 z-20">
-        <SplineViewer className="h-[38vh] min-h-[220px] w-full" />
+        <SplineViewer
+          className="h-[44vh] min-h-[280px] w-full sm:h-[40vh]"
+          strand={{
+            slots,
+            activeSlotIndex: nextEmptyIndex,
+            filledCount,
+            totalSlots: activeTemplate.slot_count,
+            onSlotTap: handleSlotTap,
+          }}
+        />
       </header>
 
       <main className="flex flex-1 flex-col gap-5 px-4 pb-8 pt-4">
@@ -265,23 +273,6 @@ export function CustomerCustomizer() {
             />
           </div>
         </div>
-
-        {/* Linear slot array — mirrors bracelet layout */}
-        <section>
-          <div className="mb-2 flex items-baseline justify-between">
-            <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-              Your Strand
-            </p>
-            <p className="text-xs text-gem-mist/50">
-              {filledCount} / {activeTemplate.slot_count}
-            </p>
-          </div>
-          <BraceletSlotStrip
-            slots={slots}
-            activeSlotIndex={nextEmptyIndex}
-            onSlotTap={handleSlotTap}
-          />
-        </section>
 
         <section>
           <p className="mb-2 text-xs uppercase tracking-[0.25em] text-gem-gold">
