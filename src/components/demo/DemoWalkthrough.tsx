@@ -9,6 +9,7 @@ import {
   generateOrderCode,
   SEED_TEMPLATES,
 } from "@/lib/constants";
+import { formatCurrency } from "@/lib/pricing";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { DesignTemplate, Order, SlotState } from "@/types/database";
 
@@ -114,6 +115,9 @@ export function DemoWalkthrough() {
         assembly_script: script,
         total_slot_count: slotCount,
         filled_slot_count: slotCount,
+        total_cents: created.total_cents ?? 0,
+        payment_method: null,
+        amount_paid_cents: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         paid_at: null,
@@ -136,7 +140,11 @@ export function DemoWalkthrough() {
       const res = await fetch(`/api/orders/${activeOrder.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "in_studio" }),
+        body: JSON.stringify({
+          status: "in_studio",
+          payment_method: "card",
+          amount_paid_cents: activeOrder.total_cents ?? 0,
+        }),
       });
 
       if (!res.ok) throw new Error("Could not mark paid");
@@ -293,6 +301,9 @@ export function DemoWalkthrough() {
               </p>
               <p className="mt-3 font-display text-5xl text-gem-mist">
                 #{activeOrder.order_code}
+              </p>
+              <p className="mt-2 font-display text-2xl text-gem-gold">
+                {formatCurrency(activeOrder.total_cents ?? 0)}
               </p>
               <p className="mt-4 text-sm text-gem-mist/50">
                 Customer shows this to the cashier

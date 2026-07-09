@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { formatCurrency, type PaymentMethod } from "@/lib/pricing";
 import type { Order } from "@/types/database";
+
+const PAYMENT_OPTIONS: PaymentMethod[] = ["cash", "card", "other"];
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], {
@@ -19,8 +22,14 @@ export function PosDashboard() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [persisted, setPersisted] = useState(true);
+  const [paymentMethods, setPaymentMethods] = useState<
+    Record<string, PaymentMethod>
+  >({});
 
   const pendingOrders = orders.filter((o) => o.status === "pending_payment");
+
+  const getPaymentMethod = (orderId: string): PaymentMethod =>
+    paymentMethods[orderId] ?? "card";
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -71,11 +80,18 @@ export function PosDashboard() {
     setProcessingId(order.id);
     setError(null);
 
+    const method = getPaymentMethod(order.id);
+    const amount = order.total_cents ?? 0;
+
     try {
       const res = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "in_studio" }),
+        body: JSON.stringify({
+          status: "in_studio",
+          payment_method: method,
+          amount_paid_cents: amount,
+        }),
       });
 
       if (!res.ok) {
@@ -168,6 +184,9 @@ export function PosDashboard() {
                   <p className="font-display text-3xl text-gem-gold">
                     #{order.order_code}
                   </p>
+                  <p className="mt-1 font-display text-xl text-gem-mist">
+                    {formatCurrency(order.total_cents ?? 0)}
+                  </p>
                   <p className="mt-1 text-sm text-gem-mist/60">
                     {order.filled_slot_count} / {order.total_slot_count} beads ·{" "}
                     {formatTime(order.created_at)}
@@ -179,7 +198,28 @@ export function PosDashboard() {
                   )}
                 </div>
 
-                <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
+                  <div className="flex gap-1">
+                    {PAYMENT_OPTIONS.map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() =>
+                          setPaymentMethods((prev) => ({
+                            ...prev,
+                            [order.id]: method,
+                          }))
+                        }
+                        className={`rounded-lg px-3 py-1.5 text-xs capitalize transition ${
+                          getPaymentMethod(order.id) === method
+                            ? "bg-gem-gold text-gem-ink"
+                            : "border border-white/15 text-gem-mist/70 hover:border-white/30"
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     disabled={processingId === order.id}

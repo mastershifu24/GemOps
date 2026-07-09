@@ -94,6 +94,9 @@ export interface Database {
           assembly_script: string | null;
           total_slot_count: number;
           filled_slot_count: number;
+          total_cents: number;
+          payment_method: string | null;
+          amount_paid_cents: number | null;
           created_at: string;
           updated_at: string;
           paid_at: string | null;
@@ -108,6 +111,9 @@ export interface Database {
           assembly_script?: string | null;
           total_slot_count: number;
           filled_slot_count?: number;
+          total_cents?: number;
+          payment_method?: string | null;
+          amount_paid_cents?: number | null;
           created_at?: string;
           updated_at?: string;
           paid_at?: string | null;
@@ -122,6 +128,9 @@ export interface Database {
           assembly_script?: string | null;
           total_slot_count?: number;
           filled_slot_count?: number;
+          total_cents?: number;
+          payment_method?: string | null;
+          amount_paid_cents?: number | null;
           created_at?: string;
           updated_at?: string;
           paid_at?: string | null;

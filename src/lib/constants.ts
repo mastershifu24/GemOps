@@ -170,6 +170,7 @@ export function toSlotAssignment(
     name: component.name,
     component_type: component.component_type,
     display_color: component.display_color,
+    unit_cost_cents: component.unit_cost_cents,
   };
 }
 

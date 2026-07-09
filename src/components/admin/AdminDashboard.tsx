@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { formatCurrency, PAYMENT_METHOD_LABELS } from "@/lib/pricing";
 import type { Component, ComponentType, Order } from "@/types/database";
 
 const COMPONENT_TYPES: ComponentType[] = [
@@ -291,7 +292,9 @@ export function AdminDashboard() {
                           #{order.order_code}
                         </span>
                         <span className="mt-1 block text-sm text-gem-mist/50">
-                          {order.filled_slot_count} beads · {formatTime(order.created_at)}
+                          {formatCurrency(order.total_cents ?? 0)} ·{" "}
+                          {order.filled_slot_count} beads ·{" "}
+                          {formatTime(order.created_at)}
                         </span>
                       </button>
                     </li>
@@ -312,7 +315,15 @@ export function AdminDashboard() {
                   </p>
                   <p className="mt-2 text-sm text-gem-mist/50">
                     {selectedOrder.filled_slot_count} /{" "}
-                    {selectedOrder.total_slot_count} slots filled
+                    {selectedOrder.total_slot_count} slots filled ·{" "}
+                    {formatCurrency(selectedOrder.total_cents ?? 0)}
+                    {selectedOrder.payment_method && (
+                      <>
+                        {" "}
+                        · paid via{" "}
+                        {PAYMENT_METHOD_LABELS[selectedOrder.payment_method]}
+                      </>
+                    )}
                   </p>
 
                   <div className="mt-6 rounded-lg bg-gem-ink p-5">

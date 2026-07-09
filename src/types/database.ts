@@ -67,7 +67,10 @@ export interface SlotAssignment {
   name: string;
   component_type: ComponentType;
   display_color: string;
+  unit_cost_cents?: number;
 }
+
+export type PaymentMethod = "cash" | "card" | "other";
 
 export type SlotState = SlotAssignment | null;
 
@@ -80,6 +83,9 @@ export interface Order {
   assembly_script: string | null;
   total_slot_count: number;
   filled_slot_count: number;
+  total_cents: number;
+  payment_method: PaymentMethod | null;
+  amount_paid_cents: number | null;
   created_at: string;
   updated_at: string;
   paid_at: string | null;

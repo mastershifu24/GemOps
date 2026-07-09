@@ -79,6 +79,11 @@ CREATE TABLE IF NOT EXISTS public.orders (
   assembly_script     TEXT,
   total_slot_count    INTEGER NOT NULL,
   filled_slot_count   INTEGER NOT NULL DEFAULT 0,
+  total_cents         INTEGER NOT NULL DEFAULT 0,
+  payment_method      TEXT CHECK (
+    payment_method IS NULL OR payment_method IN ('cash', 'card', 'other')
+  ),
+  amount_paid_cents   INTEGER,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   paid_at             TIMESTAMPTZ,

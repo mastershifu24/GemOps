@@ -11,6 +11,7 @@ import {
   SEED_TEMPLATES,
   toSlotAssignment,
 } from "@/lib/constants";
+import { calculateOrderTotalCents, formatCurrency } from "@/lib/pricing";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { StoreHeader } from "@/components/brand/StoreHeader";
 import { BulkActions } from "@/components/customizer/BulkActions";
@@ -45,6 +46,7 @@ export function CustomerCustomizer() {
   const [selectedStone, setSelectedStone] = useState<Component | null>(null);
   const [patternDraft, setPatternDraft] = useState<PatternDraft | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
+  const [orderTotalCents, setOrderTotalCents] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -194,6 +196,7 @@ export function CustomerCustomizer() {
     const layout = slots.filter((s): s is SlotAssignment => s !== null);
     const code = generateOrderCode();
     const script = buildAssemblyScript(layout);
+    const totalCents = calculateOrderTotalCents(layout);
 
     try {
       const response = await fetch("/api/orders", {
@@ -216,6 +219,7 @@ export function CustomerCustomizer() {
 
       const data = await response.json();
       setOrderCode(data.order_code ?? code);
+      setOrderTotalCents(data.total_cents ?? totalCents);
       setPhase("finalized");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not finalize order");
@@ -227,6 +231,7 @@ export function CustomerCustomizer() {
   const handleStartOver = useCallback(() => {
     setPhase("designing");
     setOrderCode(null);
+    setOrderTotalCents(0);
     setSlots(createEmptySlots(activeTemplate.slot_count));
     setSelectedStone(null);
     setPatternDraft(null);
@@ -240,6 +245,7 @@ export function CustomerCustomizer() {
         filledCount={filledCount}
         totalSlots={activeTemplate.slot_count}
         templateName={activeTemplate.name}
+        totalCents={orderTotalCents}
         onStartOver={handleStartOver}
       />
     );
@@ -299,6 +305,19 @@ export function CustomerCustomizer() {
         {error && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error}
+          </p>
+        )}
+
+        {filledCount > 0 && (
+          <p className="text-center text-sm text-gem-mist/50">
+            Est. total{" "}
+            <span className="font-medium text-gem-gold">
+              {formatCurrency(
+                calculateOrderTotalCents(
+                  slots.filter((s): s is SlotAssignment => s !== null)
+                )
+              )}
+            </span>
           </p>
         )}
 

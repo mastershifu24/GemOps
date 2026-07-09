@@ -4,8 +4,8 @@ import {
   createDevOrder,
   isDevMode,
   listDevOrders,
-  updateDevOrderStatus,
 } from "@/lib/dev-orders";
+import { calculateOrderTotalCents } from "@/lib/pricing";
 import { createApiClient } from "@/lib/supabase/api";
 import type { SlotAssignment } from "@/types/database";
 import type { Database, Json } from "@/types/supabase";
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
   const orderCode = body.order_code ?? generateOrderCode();
   const assemblyScript =
     body.assembly_script ?? buildAssemblyScript(body.slot_layout);
+  const totalCents = calculateOrderTotalCents(body.slot_layout);
 
   if (isDevMode()) {
     const order = createDevOrder({
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
       total_slot_count: body.total_slot_count,
       filled_slot_count: body.filled_slot_count,
       assembly_script: assemblyScript,
+      total_cents: totalCents,
     });
 
     return NextResponse.json({
@@ -50,6 +52,7 @@ export async function POST(request: Request) {
       order_code: order.order_code,
       status: order.status,
       assembly_script: order.assembly_script,
+      total_cents: order.total_cents,
       persisted: false,
     });
   }
@@ -64,12 +67,13 @@ export async function POST(request: Request) {
       filled_slot_count: body.filled_slot_count,
       assembly_script: assemblyScript,
       status: "pending_payment",
+      total_cents: totalCents,
     };
 
     const { data, error } = await supabase
       .from("orders")
       .insert(payload)
-      .select("id, order_code, status, assembly_script")
+      .select("id, order_code, status, assembly_script, total_cents")
       .single();
 
     if (error) {

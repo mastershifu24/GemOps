@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { STORE_NAME } from "@/lib/branding";
+import { formatCurrency } from "@/lib/pricing";
 
 interface CheckoutScreenProps {
   orderCode: string;
   filledCount: number;
   totalSlots: number;
   templateName: string;
+  totalCents: number;
   onStartOver: () => void;
 }
 
@@ -16,6 +18,7 @@ export function CheckoutScreen({
   filledCount,
   totalSlots,
   templateName,
+  totalCents,
   onStartOver,
 }: CheckoutScreenProps) {
   return (
@@ -38,6 +41,10 @@ export function CheckoutScreen({
         <p className="mt-3 text-gem-mist/50">Beads placed</p>
         <p className="text-gem-mist">
           {filledCount} / {totalSlots}
+        </p>
+        <p className="mt-3 text-gem-mist/50">Amount due</p>
+        <p className="font-display text-2xl text-gem-gold">
+          {formatCurrency(totalCents)}
         </p>
       </div>
 

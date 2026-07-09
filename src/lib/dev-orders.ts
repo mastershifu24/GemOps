@@ -1,12 +1,13 @@
-import type { Order, SlotAssignment } from "@/types/database";
+import type { Order, OrderStatus, PaymentMethod } from "@/types/database";
 
 interface DevOrderInput {
   order_code: string;
   design_template_id: string;
-  slot_layout: SlotAssignment[];
+  slot_layout: Order["slot_layout"];
   total_slot_count: number;
   filled_slot_count: number;
   assembly_script: string;
+  total_cents: number;
 }
 
 const devOrders = new Map<string, Order>();
@@ -30,6 +31,9 @@ export function createDevOrder(input: DevOrderInput): Order {
     assembly_script: input.assembly_script,
     total_slot_count: input.total_slot_count,
     filled_slot_count: input.filled_slot_count,
+    total_cents: input.total_cents,
+    payment_method: null,
+    amount_paid_cents: null,
     created_at: now,
     updated_at: now,
     paid_at: null,
@@ -48,7 +52,8 @@ export function listDevOrders(): Order[] {
 
 export function updateDevOrderStatus(
   id: string,
-  status: Order["status"]
+  status: OrderStatus,
+  payment?: { payment_method: PaymentMethod; amount_paid_cents: number }
 ): Order | null {
   const order = devOrders.get(id);
   if (!order) return null;
@@ -61,6 +66,8 @@ export function updateDevOrderStatus(
     paid_at:
       status === "in_studio" || status === "paid" ? now : order.paid_at,
     completed_at: status === "completed" ? now : order.completed_at,
+    payment_method: payment?.payment_method ?? order.payment_method,
+    amount_paid_cents: payment?.amount_paid_cents ?? order.amount_paid_cents,
   };
 
   devOrders.set(id, updated);
