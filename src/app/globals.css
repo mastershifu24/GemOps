@@ -21,6 +21,32 @@ body {
 }
 
 @layer utilities {
+  @keyframes bracelet-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes bracelet-counter-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(-360deg);
+    }
+  }
+
+  .bracelet-ring-spin {
+    animation: bracelet-spin 56s linear infinite;
+  }
+
+  .bracelet-ring-counter {
+    animation: bracelet-counter-spin 56s linear infinite;
+  }
+
   .bead-sphere {
     background: radial-gradient(
       circle at 30% 25%,

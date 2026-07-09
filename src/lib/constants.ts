@@ -1,4 +1,5 @@
 import type { Component, DesignTemplate, SlotAssignment } from "@/types/database";
+import { WRIST_LENGTH_OPTIONS } from "@/lib/template-layout";
 
 /** MVP seed data — used when Supabase is not configured yet */
 export const SEED_COMPONENTS: Component[] = [
@@ -83,6 +84,22 @@ export const SEED_COMPONENTS: Component[] = [
 ];
 
 export const SEED_TEMPLATES: DesignTemplate[] = [
+  {
+    id: "seed-bracelet-16",
+    name: "Wrist Bracelet",
+    slug: "bracelet-16",
+    description: "Circular wrist bracelet, 16 bead slots",
+    slot_count: 16,
+    configuration_rules: {
+      layout: "radial",
+      fill_mode: "sequential",
+      assembly_direction: "left_to_right",
+      length_options: WRIST_LENGTH_OPTIONS,
+      slots: [],
+    },
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
   {
     id: "seed-classic-24",
     name: "Classic Strand",

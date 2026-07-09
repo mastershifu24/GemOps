@@ -23,9 +23,21 @@ export interface SlotRule {
   fixed_component_id?: string | null;
 }
 
+/** Wrist circumference preset → bead count (radial bracelets) */
+export interface BraceletLengthOption {
+  label: string;
+  slot_count: number;
+  description?: string;
+  default?: boolean;
+}
+
 export interface TemplateConfigurationRules {
   layout: "linear" | "radial" | "layered";
   assembly_direction?: "left_to_right" | "right_to_left" | "center_out";
+  /** radial bracelets: fill slots in order only */
+  fill_mode?: "sequential" | "free";
+  /** radial bracelets: wrist size presets */
+  length_options?: BraceletLengthOption[];
   slots?: SlotRule[];
 }
 

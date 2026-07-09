@@ -9,6 +9,7 @@ interface CheckoutScreenProps {
   filledCount: number;
   totalSlots: number;
   templateName: string;
+  wristLengthLabel?: string | null;
   totalCents: number;
   onStartOver: () => void;
 }
@@ -18,6 +19,7 @@ export function CheckoutScreen({
   filledCount,
   totalSlots,
   templateName,
+  wristLengthLabel,
   totalCents,
   onStartOver,
 }: CheckoutScreenProps) {
@@ -38,6 +40,12 @@ export function CheckoutScreen({
       <div className="mt-8 w-full max-w-xs rounded-xl border border-white/10 bg-gem-slate p-4 text-left text-sm">
         <p className="text-gem-mist/50">Template</p>
         <p className="text-gem-mist">{templateName}</p>
+        {wristLengthLabel && (
+          <>
+            <p className="mt-3 text-gem-mist/50">Wrist length</p>
+            <p className="text-gem-mist">{wristLengthLabel}</p>
+          </>
+        )}
         <p className="mt-3 text-gem-mist/50">Beads placed</p>
         <p className="text-gem-mist">
           {filledCount} / {totalSlots}

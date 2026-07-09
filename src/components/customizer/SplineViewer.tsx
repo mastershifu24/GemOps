@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Application } from "@splinetool/runtime";
+import { BraceletRing } from "@/components/customizer/BraceletRing";
 import { BraceletSlotStrip } from "@/components/customizer/BraceletSlotStrip";
 import {
   getSplineStrandSceneUrl,
   SPLINE_FALLBACK_EMBED_URL,
 } from "@/lib/constants";
+import type { TemplateLayout } from "@/lib/template-layout";
 import {
   sceneHasStrandBeads,
   syncSlotsToSpline,
@@ -24,6 +26,8 @@ export interface StrandOverlayProps {
   activeSlotIndex: number | null;
   filledCount: number;
   totalSlots: number;
+  layout?: TemplateLayout;
+  sequentialOnly?: boolean;
   onSlotTap?: (index: number) => void;
 }
 
@@ -53,6 +57,22 @@ function StrandOverlayPanel({
   strand: StrandOverlayProps;
   compact?: boolean;
 }) {
+  const isRadial = strand.layout === "radial";
+
+  if (isRadial) {
+    return (
+      <div className="absolute inset-0 z-10 flex items-center justify-center px-4">
+        <BraceletRing
+          slots={strand.slots}
+          activeSlotIndex={strand.activeSlotIndex}
+          onSlotTap={strand.onSlotTap}
+          sequentialOnly={strand.sequentialOnly}
+          className="max-h-[min(72vw,320px)]"
+        />
+      </div>
+    );
+  }
+
   if (compact) {
     return (
       <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center">
@@ -92,7 +112,9 @@ function StrandOverlayPanel({
  */
 export function SplineViewer({ className = "", strand }: SplineViewerProps) {
   const strandSceneUrl = getSplineStrandSceneUrl();
-  const useRuntime = Boolean(strand && strandSceneUrl);
+  const useRuntime = Boolean(
+    strand && strandSceneUrl && strand.layout !== "radial"
+  );
 
   const [mode, setMode] = useState<ViewerMode>(
     useRuntime ? "loading-runtime" : "iframe"
@@ -135,9 +157,10 @@ export function SplineViewer({ className = "", strand }: SplineViewerProps) {
   }, [mode, strand?.slots, strand?.totalSlots, strand]);
 
   const hasStrand = strand !== undefined;
-  const show3DStrand = mode === "runtime-3d";
+  const isRadial = strand?.layout === "radial";
+  const show3DStrand = mode === "runtime-3d" && !isRadial;
   const showIframe =
-    mode === "iframe" || mode === "loading-runtime";
+    (mode === "iframe" || mode === "loading-runtime") && !isRadial;
 
   return (
     <div
@@ -166,11 +189,15 @@ export function SplineViewer({ className = "", strand }: SplineViewerProps) {
 
       <div
         className={`pointer-events-none absolute inset-x-0 bg-gradient-to-t from-gem-ink via-gem-ink/80 to-transparent ${
-          hasStrand ? "bottom-0 h-32" : "bottom-0 h-16"
+          isRadial ? "bottom-0 h-16" : hasStrand ? "bottom-0 h-32" : "bottom-0 h-16"
         }`}
       />
 
-      {hasStrand && (
+      {hasStrand && isRadial && (
+        <StrandOverlayPanel strand={strand} />
+      )}
+
+      {hasStrand && !isRadial && (
         <StrandOverlayPanel strand={strand} compact={show3DStrand} />
       )}
     </div>

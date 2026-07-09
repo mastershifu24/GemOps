@@ -13,13 +13,24 @@ import {
 } from "@/lib/constants";
 import { calculateOrderTotalCents, formatCurrency } from "@/lib/pricing";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  formatLengthLabel,
+  getDefaultLengthOption,
+  getLengthOptions,
+  getTemplateLayout,
+  isRadialTemplate,
+  isSequentialFill,
+  resolveSlotCount,
+} from "@/lib/template-layout";
 import { StoreHeader } from "@/components/brand/StoreHeader";
+import { BraceletLengthPicker } from "@/components/customizer/BraceletLengthPicker";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
 import { StonePalette } from "@/components/customizer/StonePalette";
 import { TemplateToggle } from "@/components/customizer/TemplateToggle";
 import type {
+  BraceletLengthOption,
   Component,
   DesignTemplate,
   SlotAssignment,
@@ -33,20 +44,27 @@ interface PatternDraft {
   stoneB: Component | null;
 }
 
+const INITIAL_TEMPLATE = SEED_TEMPLATES[0];
+const INITIAL_LENGTH = getDefaultLengthOption(INITIAL_TEMPLATE);
+
 export function CustomerCustomizer() {
   const [phase, setPhase] = useState<Phase>("designing");
   const [templates, setTemplates] = useState<DesignTemplate[]>(SEED_TEMPLATES);
   const [components, setComponents] = useState<Component[]>(SEED_COMPONENTS);
-  const [activeTemplate, setActiveTemplate] = useState<DesignTemplate>(
-    SEED_TEMPLATES[0]
-  );
+  const [activeTemplate, setActiveTemplate] =
+    useState<DesignTemplate>(INITIAL_TEMPLATE);
+  const [selectedLength, setSelectedLength] =
+    useState<BraceletLengthOption | null>(INITIAL_LENGTH);
   const [slots, setSlots] = useState<SlotState[]>(() =>
-    createEmptySlots(SEED_TEMPLATES[0].slot_count)
+    createEmptySlots(resolveSlotCount(INITIAL_TEMPLATE, INITIAL_LENGTH))
   );
   const [selectedStone, setSelectedStone] = useState<Component | null>(null);
   const [patternDraft, setPatternDraft] = useState<PatternDraft | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [orderTotalCents, setOrderTotalCents] = useState(0);
+  const [lockedLengthLabel, setLockedLengthLabel] = useState<string | null>(
+    null
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,9 +90,12 @@ export function CustomerCustomizer() {
 
       if (templatesRes.data?.length) {
         const loaded = templatesRes.data as DesignTemplate[];
+        const first = loaded[0];
+        const defaultLength = getDefaultLengthOption(first);
         setTemplates(loaded);
-        setActiveTemplate(loaded[0]);
-        setSlots(createEmptySlots(loaded[0].slot_count));
+        setActiveTemplate(first);
+        setSelectedLength(defaultLength);
+        setSlots(createEmptySlots(resolveSlotCount(first, defaultLength)));
       }
 
       if (componentsRes.data?.length) {
@@ -83,10 +104,15 @@ export function CustomerCustomizer() {
     })();
   }, []);
 
+  const lengthOptions = getLengthOptions(activeTemplate);
+  const activeSlotCount = resolveSlotCount(activeTemplate, selectedLength);
   const filledCount = useMemo(() => countFilledSlots(slots), [slots]);
-  const remainingCount = activeTemplate.slot_count - filledCount;
+  const remainingCount = activeSlotCount - filledCount;
   const nextEmptyIndex = useMemo(() => findNextEmptySlotIndex(slots), [slots]);
   const patternMode = patternDraft !== null && patternDraft.stoneB === null;
+  const templateLayout = getTemplateLayout(activeTemplate);
+  const sequentialOnly = isSequentialFill(activeTemplate);
+  const showBulkActions = !isRadialTemplate(activeTemplate);
 
   const assignToSlot = useCallback(
     (index: number, component: Component) => {
@@ -141,13 +167,34 @@ export function CustomerCustomizer() {
     [patternDraft, fillNextEmpty]
   );
 
-  const handleTemplateChange = useCallback((template: DesignTemplate) => {
-    setActiveTemplate(template);
-    setSlots(createEmptySlots(template.slot_count));
-    setSelectedStone(null);
-    setPatternDraft(null);
-    setError(null);
-  }, []);
+  const resetDesign = useCallback(
+    (template: DesignTemplate, length: BraceletLengthOption | null) => {
+      setSlots(createEmptySlots(resolveSlotCount(template, length)));
+      setSelectedStone(null);
+      setPatternDraft(null);
+      setError(null);
+    },
+    []
+  );
+
+  const handleTemplateChange = useCallback(
+    (template: DesignTemplate) => {
+      const defaultLength = getDefaultLengthOption(template);
+      setActiveTemplate(template);
+      setSelectedLength(defaultLength);
+      resetDesign(template, defaultLength);
+    },
+    [resetDesign]
+  );
+
+  const handleLengthChange = useCallback(
+    (option: BraceletLengthOption) => {
+      if (option.slot_count === activeSlotCount) return;
+      setSelectedLength(option);
+      resetDesign(activeTemplate, option);
+    },
+    [activeSlotCount, activeTemplate, resetDesign]
+  );
 
   const handlePatternAlternator = useCallback(() => {
     if (patternDraft) {
@@ -179,9 +226,10 @@ export function CustomerCustomizer() {
   const handleSlotTap = useCallback(
     (index: number) => {
       if (!selectedStone || slots[index] !== null) return;
+      if (sequentialOnly && index !== nextEmptyIndex) return;
       assignToSlot(index, selectedStone);
     },
-    [selectedStone, slots, assignToSlot]
+    [selectedStone, slots, assignToSlot, sequentialOnly, nextEmptyIndex]
   );
 
   const handleFinalize = useCallback(async () => {
@@ -197,6 +245,9 @@ export function CustomerCustomizer() {
     const code = generateOrderCode();
     const script = buildAssemblyScript(layout);
     const totalCents = calculateOrderTotalCents(layout);
+    const lengthLabel = selectedLength
+      ? formatLengthLabel(selectedLength)
+      : null;
 
     try {
       const response = await fetch("/api/orders", {
@@ -206,7 +257,7 @@ export function CustomerCustomizer() {
           order_code: code,
           design_template_id: activeTemplate.id,
           slot_layout: layout,
-          total_slot_count: activeTemplate.slot_count,
+          total_slot_count: activeSlotCount,
           filled_slot_count: filledCount,
           assembly_script: script,
         }),
@@ -220,31 +271,37 @@ export function CustomerCustomizer() {
       const data = await response.json();
       setOrderCode(data.order_code ?? code);
       setOrderTotalCents(data.total_cents ?? totalCents);
+      setLockedLengthLabel(lengthLabel);
       setPhase("finalized");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not finalize order");
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeTemplate, filledCount, slots]);
+  }, [
+    activeSlotCount,
+    activeTemplate.id,
+    filledCount,
+    selectedLength,
+    slots,
+  ]);
 
   const handleStartOver = useCallback(() => {
     setPhase("designing");
     setOrderCode(null);
     setOrderTotalCents(0);
-    setSlots(createEmptySlots(activeTemplate.slot_count));
-    setSelectedStone(null);
-    setPatternDraft(null);
-    setError(null);
-  }, [activeTemplate.slot_count]);
+    setLockedLengthLabel(null);
+    resetDesign(activeTemplate, selectedLength);
+  }, [activeTemplate, selectedLength, resetDesign]);
 
   if (phase === "finalized" && orderCode) {
     return (
       <CheckoutScreen
         orderCode={orderCode}
         filledCount={filledCount}
-        totalSlots={activeTemplate.slot_count}
+        totalSlots={activeSlotCount}
         templateName={activeTemplate.name}
+        wristLengthLabel={lockedLengthLabel}
         totalCents={orderTotalCents}
         onStartOver={handleStartOver}
       />
@@ -253,7 +310,6 @@ export function CustomerCustomizer() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gem-ink">
-      {/* Top-anchored Spline 3D viewer */}
       <header className="sticky top-0 z-20">
         <SplineViewer
           className="h-[44vh] min-h-[280px] w-full sm:h-[40vh]"
@@ -261,7 +317,9 @@ export function CustomerCustomizer() {
             slots,
             activeSlotIndex: nextEmptyIndex,
             filledCount,
-            totalSlots: activeTemplate.slot_count,
+            totalSlots: activeSlotCount,
+            layout: templateLayout,
+            sequentialOnly,
             onSlotTap: handleSlotTap,
           }}
         />
@@ -283,10 +341,23 @@ export function CustomerCustomizer() {
           </div>
         </div>
 
+        {lengthOptions && selectedLength && (
+          <BraceletLengthPicker
+            options={lengthOptions}
+            selectedSlotCount={activeSlotCount}
+            onChange={handleLengthChange}
+          />
+        )}
+
         <section>
           <p className="mb-2 text-xs uppercase tracking-[0.25em] text-gem-gold">
             Tap to Fill
           </p>
+          {sequentialOnly && (
+            <p className="mb-2 text-xs text-gem-mist/50">
+              Select a stone — it fills the next open slot on your bracelet.
+            </p>
+          )}
           <StonePalette
             components={components}
             selectedId={selectedStone?.id ?? null}
@@ -294,13 +365,15 @@ export function CustomerCustomizer() {
           />
         </section>
 
-        <BulkActions
-          patternMode={patternMode}
-          onPatternAlternator={handlePatternAlternator}
-          onFillRemaining={handleFillRemaining}
-          hasSelection={selectedStone !== null}
-          remainingCount={remainingCount}
-        />
+        {showBulkActions && (
+          <BulkActions
+            patternMode={patternMode}
+            onPatternAlternator={handlePatternAlternator}
+            onFillRemaining={handleFillRemaining}
+            hasSelection={selectedStone !== null}
+            remainingCount={remainingCount}
+          />
+        )}
 
         {error && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
