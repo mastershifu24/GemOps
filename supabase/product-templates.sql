@@ -70,6 +70,29 @@ VALUES
   )
 ON CONFLICT (slug) DO NOTHING;
 
+INSERT INTO public.design_templates (name, slug, description, slot_count, configuration_rules)
+VALUES (
+  'Anklet',
+  'anklet-14',
+  'Circular anklet',
+  14,
+  '{
+    "layout": "radial",
+    "product_type": "anklet",
+    "fill_mode": "sequential",
+    "assembly_direction": "left_to_right",
+    "length_options": [
+      { "label": "8\"", "slot_count": 10, "description": "Petite" },
+      { "label": "8.5\"", "slot_count": 12, "description": "Small" },
+      { "label": "9\"", "slot_count": 14, "description": "Medium", "default": true },
+      { "label": "9.5\"", "slot_count": 16, "description": "Large" },
+      { "label": "10\"", "slot_count": 18, "description": "XL" }
+    ],
+    "slots": []
+  }'::jsonb
+)
+ON CONFLICT (slug) DO NOTHING;
+
 UPDATE public.design_templates
 SET configuration_rules = configuration_rules || '{"product_type": "strand"}'::jsonb
 WHERE slug IN ('classic-24', 'double-48');

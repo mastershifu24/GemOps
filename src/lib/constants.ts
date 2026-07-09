@@ -1,5 +1,6 @@
-import type { Component, DesignTemplate, SlotAssignment } from "@/types/database";
+import type { BeadShape, Component, DesignTemplate, SlotAssignment } from "@/types/database";
 import {
+  ANKLET_LENGTH_OPTIONS,
   DOG_COLLAR_LENGTH_OPTIONS,
   NECKLACE_LENGTH_OPTIONS,
   WRIST_LENGTH_OPTIONS,
@@ -85,6 +86,19 @@ export const SEED_COMPONENTS: Component[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
+  {
+    id: "seed-clasp",
+    name: "Gold Clasp",
+    component_type: "clasp",
+    sku: "CL-GOLD",
+    display_color: "#c9a962",
+    spline_asset_url: null,
+    unit_cost_cents: 1500,
+    configuration_rules: { finish: "metal", role: "closure" },
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 export const SEED_TEMPLATES: DesignTemplate[] = [
@@ -140,6 +154,23 @@ export const SEED_TEMPLATES: DesignTemplate[] = [
     created_at: new Date().toISOString(),
   },
   {
+    id: "seed-anklet-14",
+    name: "Anklet",
+    slug: "anklet-14",
+    description: "Circular anklet",
+    slot_count: 14,
+    configuration_rules: {
+      layout: "radial",
+      product_type: "anklet",
+      fill_mode: "sequential",
+      assembly_direction: "left_to_right",
+      length_options: ANKLET_LENGTH_OPTIONS,
+      slots: [],
+    },
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
     id: "seed-classic-24",
     name: "Classic Strand",
     slug: "classic-24",
@@ -180,27 +211,45 @@ export function generateOrderCode(): string {
   return `${prefix}-${suffix}`;
 }
 
-/** Bench stringer recipe: START -> 5x Onyx -> 1x Spacer -> END */
+/** Bench stringer recipe — includes bead size when mixed */
 export function buildAssemblyScript(layout: SlotAssignment[]): string {
   const filled = [...layout].sort((a, b) => a.slot_index - b.slot_index);
   if (filled.length === 0) return "START -> (empty) -> END";
 
   const segments: string[] = [];
-  let currentName = filled[0].name;
+  let currentKey = segmentKey(filled[0]);
+  let currentLabel = segmentLabel(filled[0]);
   let count = 1;
 
   for (let i = 1; i < filled.length; i++) {
-    if (filled[i].name === currentName) {
+    const key = segmentKey(filled[i]);
+    if (key === currentKey) {
       count++;
     } else {
-      segments.push(`${count}x ${currentName}`);
-      currentName = filled[i].name;
+      segments.push(`${count}x ${currentLabel}`);
+      currentKey = key;
+      currentLabel = segmentLabel(filled[i]);
       count = 1;
     }
   }
-  segments.push(`${count}x ${currentName}`);
+  segments.push(`${count}x ${currentLabel}`);
 
   return `START -> ${segments.join(" -> ")} -> END`;
+}
+
+function segmentKey(slot: SlotAssignment): string {
+  const mm = slot.bead_size_mm ?? 8;
+  const shape = slot.bead_shape ?? "round";
+  return `${slot.name}|${mm}|${shape}|${slot.component_type}`;
+}
+
+function segmentLabel(slot: SlotAssignment): string {
+  const mm = slot.bead_size_mm;
+  const shape = slot.bead_shape;
+  const parts = [slot.name];
+  if (mm && mm !== 8) parts.push(`${mm}mm`);
+  if (shape && shape !== "round") parts.push(shape);
+  return parts.join(" ");
 }
 
 export function createEmptySlots(count: number): (SlotAssignment | null)[] {
@@ -220,7 +269,8 @@ export function countFilledSlots(slots: (SlotAssignment | null)[]): number {
 
 export function toSlotAssignment(
   component: Component,
-  slotIndex: number
+  slotIndex: number,
+  options?: { beadSizeMm?: number; beadShape?: BeadShape }
 ): SlotAssignment {
   return {
     slot_index: slotIndex,
@@ -229,6 +279,14 @@ export function toSlotAssignment(
     component_type: component.component_type,
     display_color: component.display_color,
     unit_cost_cents: component.unit_cost_cents,
+    bead_size_mm:
+      component.component_type === "bead"
+        ? (options?.beadSizeMm ?? 8)
+        : undefined,
+    bead_shape:
+      component.component_type === "bead"
+        ? (options?.beadShape ?? "round")
+        : undefined,
   };
 }
 

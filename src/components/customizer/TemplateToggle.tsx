@@ -16,7 +16,8 @@ export function TemplateToggle({
   disabled = false,
 }: TemplateToggleProps) {
   return (
-    <div className="flex rounded-xl border border-white/10 bg-gem-slate p-1">
+    <div className="overflow-x-auto">
+      <div className="flex min-w-max gap-1 rounded-xl border border-white/10 bg-gem-slate p-1">
       {templates.map((template) => {
         const isActive = template.id === activeTemplateId;
 
@@ -38,7 +39,8 @@ export function TemplateToggle({
             </span>
           </button>
         );
-      })}
+        })}
+      </div>
     </div>
   );
 }

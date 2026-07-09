@@ -31,7 +31,9 @@ export interface BraceletLengthOption {
   default?: boolean;
 }
 
-export type ProductType = "bracelet" | "necklace" | "dog_collar" | "strand";
+export type ProductType = "bracelet" | "necklace" | "dog_collar" | "anklet" | "strand";
+
+export type BeadShape = "round" | "faceted" | "rondelle";
 
 export interface TemplateConfigurationRules {
   layout: "linear" | "radial" | "arc" | "layered";
@@ -83,6 +85,8 @@ export interface SlotAssignment {
   component_type: ComponentType;
   display_color: string;
   unit_cost_cents?: number;
+  bead_size_mm?: number;
+  bead_shape?: BeadShape;
 }
 
 export type PaymentMethod = "cash" | "card" | "other";

@@ -25,13 +25,14 @@ import {
   resolveSlotCount,
 } from "@/lib/template-layout";
 import { StoreHeader } from "@/components/brand/StoreHeader";
-import { BraceletLengthPicker } from "@/components/customizer/BraceletLengthPicker";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
+import { ClaspPicker } from "@/components/customizer/ClaspPicker";
+import { DesignControls } from "@/components/customizer/DesignControls";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
 import { StonePalette } from "@/components/customizer/StonePalette";
-import { TemplateToggle } from "@/components/customizer/TemplateToggle";
 import type {
+  BeadShape,
   BraceletLengthOption,
   Component,
   DesignTemplate,
@@ -61,6 +62,9 @@ export function CustomerCustomizer() {
     createEmptySlots(resolveSlotCount(INITIAL_TEMPLATE, INITIAL_LENGTH))
   );
   const [selectedStone, setSelectedStone] = useState<Component | null>(null);
+  const [selectedBeadMm, setSelectedBeadMm] = useState(8);
+  const [selectedBeadShape, setSelectedBeadShape] = useState<BeadShape>("round");
+  const [selectedClaspId, setSelectedClaspId] = useState<string | null>(null);
   const [patternDraft, setPatternDraft] = useState<PatternDraft | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [orderTotalCents, setOrderTotalCents] = useState(0);
@@ -116,19 +120,31 @@ export function CustomerCustomizer() {
   const productType = getProductType(activeTemplate);
   const sequentialOnly = isSequentialFill(activeTemplate);
   const showBulkActions = !sequentialOnly;
+  const claspComponents = useMemo(
+    () => components.filter((c) => c.component_type === "clasp"),
+    [components]
+  );
 
-  const assignToSlot = useCallback(
+  const placeComponent = useCallback(
     (index: number, component: Component) => {
       setSlots((prev) => {
-        if (index < 0 || index >= prev.length) {
-          return prev;
-        }
+        if (index < 0 || index >= prev.length) return prev;
         const next = [...prev];
-        next[index] = toSlotAssignment(component, index);
+        next[index] = toSlotAssignment(component, index, {
+          beadSizeMm: selectedBeadMm,
+          beadShape: selectedBeadShape,
+        });
         return next;
       });
     },
-    []
+    [selectedBeadMm, selectedBeadShape]
+  );
+
+  const assignToSlot = useCallback(
+    (index: number, component: Component) => {
+      placeComponent(index, component);
+    },
+    [placeComponent]
   );
 
   const fillNextEmpty = useCallback(
@@ -156,7 +172,10 @@ export function CustomerCustomizer() {
           for (let i = 0; i < next.length; i++) {
             if (next[i] !== null) continue;
             const pick = toggle % 2 === 0 ? stoneA : stoneB;
-            next[i] = toSlotAssignment(pick, i);
+            next[i] = toSlotAssignment(pick, i, {
+              beadSizeMm: selectedBeadMm,
+              beadShape: selectedBeadShape,
+            });
             toggle++;
           }
           return next;
@@ -167,7 +186,7 @@ export function CustomerCustomizer() {
       setSelectedStone(component);
       fillNextEmpty(component);
     },
-    [patternDraft, fillNextEmpty]
+    [patternDraft, fillNextEmpty, selectedBeadMm, selectedBeadShape]
   );
 
   const resetDesign = useCallback(
@@ -199,6 +218,23 @@ export function CustomerCustomizer() {
     [activeSlotCount, activeTemplate, resetDesign]
   );
 
+  const handleClearAll = useCallback(() => {
+    setSlots(createEmptySlots(activeSlotCount));
+    setSelectedStone(null);
+    setSelectedClaspId(null);
+    setPatternDraft(null);
+    setError(null);
+  }, [activeSlotCount]);
+
+  const handleClaspSelect = useCallback(
+    (clasp: Component) => {
+      setSelectedClaspId(clasp.id);
+      placeComponent(0, clasp);
+      setError(null);
+    },
+    [placeComponent]
+  );
+
   const handlePatternAlternator = useCallback(() => {
     if (patternDraft) {
       setPatternDraft(null);
@@ -219,12 +255,17 @@ export function CustomerCustomizer() {
     }
     setSlots((prev) =>
       prev.map((slot, index) =>
-        slot === null ? toSlotAssignment(selectedStone, index) : slot
+        slot === null
+          ? toSlotAssignment(selectedStone, index, {
+              beadSizeMm: selectedBeadMm,
+              beadShape: selectedBeadShape,
+            })
+          : slot
       )
     );
     setPatternDraft(null);
     setError(null);
-  }, [selectedStone]);
+  }, [selectedStone, selectedBeadMm, selectedBeadShape]);
 
   const handleSlotTap = useCallback(
     (index: number) => {
@@ -321,7 +362,7 @@ export function CustomerCustomizer() {
     <div className="flex min-h-screen flex-col bg-gem-ink">
       <header className="sticky top-0 z-20">
         <SplineViewer
-          className="h-[44vh] min-h-[280px] w-full sm:h-[40vh]"
+          className="h-[46vh] min-h-[300px] w-full sm:h-[42vh]"
           strand={{
             slots,
             activeSlotIndex: nextEmptyIndex,
@@ -339,41 +380,43 @@ export function CustomerCustomizer() {
       <main className="flex flex-1 flex-col gap-5 px-4 pb-8 pt-3">
         <StoreHeader />
 
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-            Design Template
-          </p>
-          <div className="mt-2">
-            <TemplateToggle
-              templates={templates}
-              activeTemplateId={activeTemplate.id}
-              onChange={handleTemplateChange}
-            />
-          </div>
-        </div>
+        <DesignControls
+          templates={templates}
+          activeTemplate={activeTemplate}
+          onTemplateChange={handleTemplateChange}
+          lengthOptions={lengthOptions}
+          selectedLength={selectedLength}
+          activeSlotCount={activeSlotCount}
+          lengthLabel={getSizePickerLabel(activeTemplate)}
+          onLengthChange={handleLengthChange}
+          selectedBeadMm={selectedBeadMm}
+          selectedBeadShape={selectedBeadShape}
+          onBeadSizeChange={setSelectedBeadMm}
+          onBeadShapeChange={setSelectedBeadShape}
+          onClearAll={handleClearAll}
+          filledCount={filledCount}
+        />
 
-        {lengthOptions && selectedLength && (
-          <BraceletLengthPicker
-            options={lengthOptions}
-            selectedSlotCount={activeSlotCount}
-            onChange={handleLengthChange}
-            label={getSizePickerLabel(activeTemplate)}
-          />
-        )}
-
-        <section>
+        <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">
           <p className="mb-2 text-xs uppercase tracking-[0.25em] text-gem-gold">
-            Tap to Fill
+            Stones &amp; Spacers
           </p>
-          {sequentialOnly && (
-            <p className="mb-2 text-xs text-gem-mist/50">
-              Select a stone — it fills the next open slot on your bracelet.
-            </p>
-          )}
+          <p className="mb-3 text-xs text-gem-mist/50">
+            Pick size and shape above, then tap a stone — the 3D preview updates
+            instantly. Mix colors and sizes on the same piece.
+          </p>
           <StonePalette
             components={components}
             selectedId={selectedStone?.id ?? null}
             onSelect={handleStoneSelect}
+          />
+        </section>
+
+        <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">
+          <ClaspPicker
+            clasps={claspComponents}
+            selectedId={selectedClaspId}
+            onSelect={handleClaspSelect}
           />
         </section>
 

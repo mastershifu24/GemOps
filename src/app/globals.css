@@ -52,7 +52,7 @@ body {
   }
 
   .product-preview-tilt {
-    transform: rotateX(14deg);
+    transform: rotateX(10deg);
     transform-style: preserve-3d;
   }
 

@@ -22,13 +22,6 @@ interface ProductModelViewerProps {
   className?: string;
 }
 
-function beadSize(type: string | undefined, compact: boolean): string {
-  if (type === "spacer") {
-    return compact ? "h-3 w-3" : "h-3.5 w-3.5";
-  }
-  return compact ? "h-6 w-6" : "h-7 w-7";
-}
-
 export function ProductModelViewer({
   slots,
   activeSlotIndex,
@@ -41,15 +34,18 @@ export function ProductModelViewer({
 }: ProductModelViewerProps) {
   const total = slots.length;
   const compact = total > 20;
-  const emptySize = compact ? "h-6 w-6" : "h-7 w-7";
   const radiusPercent = compact ? 38 : 42;
   const isRing = layoutUsesRing(layout);
   const isArc = layoutUsesArc(layout);
   const isLinear = layout === "linear";
+  const spinsRing =
+    productType === "bracelet" ||
+    productType === "dog_collar" ||
+    productType === "anklet";
 
   if (isLinear) {
     return (
-      <div className={`product-preview-stage w-full ${className}`}>
+      <div className={`product-preview-stage mx-auto w-full max-w-lg ${className}`}>
         <div className="product-preview-tilt w-full px-1">
           <p className="mb-2 text-center text-[10px] uppercase tracking-[0.25em] text-gem-gold">
             {centerLabel}
@@ -76,67 +72,65 @@ export function ProductModelViewer({
 
   return (
     <div
-      className={`product-preview-stage relative mx-auto w-full ${className}`}
+      className={`product-preview-stage mx-auto flex w-full justify-center ${className}`}
     >
-      <div
-        className={`product-preview-tilt relative ${
-          isLinear ? "min-h-[100px] w-full max-w-full px-1" : "aspect-square max-w-[300px]"
-        }`}
-      >
-        {/* Product thread / band — always visible */}
-        {isRing && (
-          <div
-            className={`pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/25 shadow-[0_0_30px_rgba(201,169,98,0.12)] ${
-              productType === "dog_collar" ? "product-collar-band" : "product-bracelet-band"
-            } ${productType === "bracelet" || productType === "dog_collar" ? "bracelet-ring-spin" : ""}`}
-            style={{
-              width: `${radiusPercent * 2}%`,
-              height: `${radiusPercent * 2}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        )}
-
-        {isArc && (
-          <div
-            className="pointer-events-none absolute left-1/2 top-[58%] rounded-full border-2 border-white/25 shadow-[0_0_24px_rgba(201,169,98,0.1)]"
-            style={{
-              width: `${radiusPercent * 2.2}%`,
-              height: `${radiusPercent * 2.2}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        )}
-
-        {slots.map((slot, index) => {
-          const { x, y } = getPosition(index);
-          const filled = slot !== null;
-          const size = filled ? beadSize(slot.component_type, compact) : emptySize;
-
-          return (
-            <ProductBeadSlot
-              key={index}
-              index={index}
-              slot={slot}
-              x={x}
-              y={y}
-              isActive={index === activeSlotIndex}
-              emptySize={emptySize}
-              filledSize={size}
-              sequentialOnly={sequentialOnly}
-              activeSlotIndex={activeSlotIndex}
-              onSlotTap={onSlotTap}
-            />
-          );
-        })}
-
-        {/* Center / footer label */}
+      <div className="relative mx-auto aspect-square w-full max-w-[min(72vw,280px)]">
         <div
-          className={`pointer-events-none absolute text-center ${
-            isRing ? "inset-0 flex items-center justify-center" : "inset-x-0 bottom-0"
+          className={`product-preview-tilt absolute inset-0 ${
+            spinsRing ? "bracelet-ring-spin" : ""
           }`}
         >
-          <div className={isRing ? "bracelet-ring-counter" : ""}>
+          {isRing && (
+            <div
+              className={`pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/25 shadow-[0_0_30px_rgba(201,169,98,0.12)] ${
+                productType === "dog_collar" ? "product-collar-band" : "product-bracelet-band"
+              }`}
+              style={{
+                width: `${radiusPercent * 2}%`,
+                height: `${radiusPercent * 2}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          )}
+
+          {isArc && (
+            <div
+              className="pointer-events-none absolute left-1/2 top-[58%] rounded-full border-2 border-white/25 shadow-[0_0_24px_rgba(201,169,98,0.1)]"
+              style={{
+                width: `${radiusPercent * 2.2}%`,
+                height: `${radiusPercent * 2.2}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          )}
+
+          {slots.map((slot, index) => {
+            const { x, y } = getPosition(index);
+            return (
+              <ProductBeadSlot
+                key={index}
+                index={index}
+                slot={slot}
+                x={x}
+                y={y}
+                isActive={index === activeSlotIndex}
+                compact={compact}
+                sequentialOnly={sequentialOnly}
+                activeSlotIndex={activeSlotIndex}
+                onSlotTap={onSlotTap}
+              />
+            );
+          })}
+        </div>
+
+        <div
+          className={`pointer-events-none absolute text-center ${
+            isRing
+              ? "inset-0 flex items-center justify-center"
+              : "inset-x-0 bottom-0"
+          }`}
+        >
+          <div>
             <p className="text-[10px] uppercase tracking-[0.25em] text-gem-gold">
               {centerLabel}
             </p>
