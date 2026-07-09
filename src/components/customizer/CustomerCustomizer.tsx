@@ -41,6 +41,7 @@ import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
 import { ClaspPicker } from "@/components/customizer/ClaspPicker";
 import { DesignControls } from "@/components/customizer/DesignControls";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
+import { StrandStripBuilder } from "@/components/customizer/StrandStripBuilder";
 import { StonePalette } from "@/components/customizer/StonePalette";
 import type {
   BeadShape,
@@ -165,7 +166,12 @@ export function CustomerCustomizer() {
   );
 
   const placeComponent = useCallback(
-    (index: number, component: Component) => {
+    (index: number, component: Component, options?: { mirror?: boolean }) => {
+      const shouldMirror =
+        options?.mirror !== false &&
+        strandCount === 2 &&
+        supportsStrandToggle(activeTemplate);
+
       setSlots((prev) => {
         if (index < 0 || index >= prev.length) return prev;
         const assignment = toSlotAssignment(component, index, {
@@ -175,7 +181,7 @@ export function CustomerCustomizer() {
         const next = [...prev];
         next[index] = assignment;
 
-        if (strandCount === 2 && supportsStrandToggle(activeTemplate)) {
+        if (shouldMirror) {
           const pair =
             index < perRingSlotCount
               ? index + perRingSlotCount
@@ -368,7 +374,7 @@ export function CustomerCustomizer() {
   }, [selectedStone, selectedBeadMm, selectedBeadShape]);
 
   const handleSlotTap = useCallback(
-    (index: number) => {
+    (index: number, options?: { mirror?: boolean }) => {
       if (!selectedStone) return;
       if (
         sequentialOnly &&
@@ -377,9 +383,23 @@ export function CustomerCustomizer() {
       ) {
         return;
       }
-      assignToSlot(index, selectedStone);
+      placeComponent(index, selectedStone, options);
     },
-    [selectedStone, slots, assignToSlot, sequentialOnly, nextEmptyIndex]
+    [selectedStone, slots, placeComponent, sequentialOnly, nextEmptyIndex]
+  );
+
+  const handleStripSlotTap = useCallback(
+    (index: number) => {
+      handleSlotTap(index, { mirror: false });
+    },
+    [handleSlotTap]
+  );
+
+  const handleRingSlotTap = useCallback(
+    (index: number) => {
+      handleSlotTap(index, { mirror: true });
+    },
+    [handleSlotTap]
   );
 
   const handleFinalize = useCallback(async () => {
@@ -501,7 +521,7 @@ export function CustomerCustomizer() {
             previewLabel,
             sequentialOnly,
             strandCount,
-            onSlotTap: handleSlotTap,
+            onSlotTap: handleRingSlotTap,
           }}
         />
       </header>
@@ -537,6 +557,16 @@ export function CustomerCustomizer() {
           onStrandCountChange={handleStrandCountChange}
         />
 
+        {showStrandToggle && (
+          <StrandStripBuilder
+            slots={slots}
+            perRingSlotCount={perRingSlotCount}
+            strandCount={strandCount}
+            activeSlotIndex={nextEmptyIndex}
+            onSlotTap={handleStripSlotTap}
+          />
+        )}
+
         {showMeasureGuide && (
           <WristMeasureGuide
             productType={productType}
@@ -558,7 +588,7 @@ export function CustomerCustomizer() {
           previewLabel={previewLabel}
           sequentialOnly={sequentialOnly}
           strandCount={strandCount}
-          onSlotTap={handleSlotTap}
+          onSlotTap={handleRingSlotTap}
         />
 
         <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">
@@ -566,8 +596,9 @@ export function CustomerCustomizer() {
             Stones &amp; Spacers
           </p>
           <p className="mb-3 text-xs text-gem-mist/50">
-            Pick size and shape above, then tap a stone — the 3D preview updates
-            instantly. Mix colors and sizes on the same piece.
+            {showStrandToggle
+              ? "Pick a stone, then tap the strand strip or the 3D ring — both stay in sync."
+              : "Pick size and shape above, then tap a stone — the 3D preview updates instantly. Mix colors and sizes on the same piece."}
           </p>
           <StonePalette
             components={components}
