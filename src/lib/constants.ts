@@ -204,6 +204,10 @@ export const SEED_TEMPLATES: DesignTemplate[] = [
   },
 ];
 
+export function getTemplateBySlug(slug: string): DesignTemplate | undefined {
+  return SEED_TEMPLATES.find((t) => t.slug === slug);
+}
+
 const ORDER_PREFIXES = ["LUNA", "ONYX", "JADE", "RUBY", "OPAL", "PEARL"] as const;
 
 export function generateOrderCode(): string {
@@ -272,6 +276,18 @@ export function migrateSlotsToCount(
     }
   }
   return next;
+}
+
+/** Mirror inner ring onto outer for double-strand bracelet */
+export function mirrorSlotsToDoubleStrand(
+  inner: (SlotAssignment | null)[],
+  perRing: number
+): (SlotAssignment | null)[] {
+  const normalized = migrateSlotsToCount(inner, perRing);
+  const outer = normalized.map((slot, index) =>
+    slot !== null ? { ...slot, slot_index: perRing + index } : null
+  );
+  return [...normalized, ...outer];
 }
 
 export function findNextEmptySlotIndex(

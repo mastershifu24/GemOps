@@ -1,4 +1,4 @@
-import type { DesignTemplate, ProductType } from "@/types/database";
+import type { DesignTemplate, ProductType, StrandCount } from "@/types/database";
 import type { BraceletLengthOption } from "@/types/database";
 
 export type TemplateLayout = DesignTemplate["configuration_rules"]["layout"];
@@ -127,42 +127,21 @@ export function getPreviewCenterLabel(template: DesignTemplate): string {
   return `Your ${product}`;
 }
 
-/** Bracelet-first display order; dog collar hidden from customizer for now */
+/** Bracelet-first display order; strand templates are toggles on bracelet */
 const CUSTOMIZER_TEMPLATE_ORDER: Record<string, number> = {
   "bracelet-16": 0,
-  "classic-24": 1,
-  "double-48": 2,
-  "anklet-14": 3,
-  "necklace-18": 4,
+  "anklet-14": 1,
+  "necklace-18": 2,
 };
 
-const CUSTOMIZER_HIDDEN_SLUGS = new Set(["dog-collar-16"]);
+const CUSTOMIZER_HIDDEN_SLUGS = new Set([
+  "dog-collar-16",
+  "classic-24",
+  "double-48",
+]);
 
 function normalizeCustomizerTemplate(template: DesignTemplate): DesignTemplate {
-  switch (template.slug) {
-    case "classic-24":
-      return {
-        ...template,
-        configuration_rules: {
-          ...template.configuration_rules,
-          layout: "radial",
-          product_type: "strand",
-          fill_mode: "sequential",
-        },
-      };
-    case "double-48":
-      return {
-        ...template,
-        configuration_rules: {
-          ...template.configuration_rules,
-          layout: "layered",
-          product_type: "strand",
-          fill_mode: "sequential",
-        },
-      };
-    default:
-      return template;
-  }
+  return template;
 }
 
 export function filterCustomizerTemplates(
@@ -189,4 +168,59 @@ export function getDefaultCustomizerTemplate(
 ): DesignTemplate {
   const sorted = sortCustomizerTemplates(templates);
   return sorted.find((t) => t.slug === "bracelet-16") ?? sorted[0];
+}
+
+export function supportsStrandToggle(template: DesignTemplate): boolean {
+  return getProductType(template) === "bracelet";
+}
+
+export function resolvePerRingSlotCount(
+  template: DesignTemplate,
+  selectedLength?: BraceletLengthOption | null
+): number {
+  return resolveSlotCount(template, selectedLength);
+}
+
+export function resolveTotalSlotCount(
+  template: DesignTemplate,
+  selectedLength: BraceletLengthOption | null | undefined,
+  strandCount: StrandCount
+): number {
+  const perRing = resolvePerRingSlotCount(template, selectedLength);
+  return supportsStrandToggle(template) ? perRing * strandCount : perRing;
+}
+
+export function resolvePreviewLayout(
+  template: DesignTemplate,
+  strandCount: StrandCount
+): TemplateLayout {
+  if (supportsStrandToggle(template) && strandCount === 2) {
+    return "layered";
+  }
+  return getTemplateLayout(template);
+}
+
+export function resolvePreviewLabel(
+  template: DesignTemplate,
+  strandCount: StrandCount
+): string {
+  if (supportsStrandToggle(template) && strandCount === 2) {
+    return "Double Strand";
+  }
+  if (supportsStrandToggle(template)) {
+    return "Your Bracelet";
+  }
+  return getPreviewCenterLabel(template);
+}
+
+export function resolveOrderTemplate(
+  templates: DesignTemplate[],
+  activeTemplate: DesignTemplate,
+  strandCount: StrandCount
+): DesignTemplate {
+  if (!supportsStrandToggle(activeTemplate)) {
+    return activeTemplate;
+  }
+  const slug = strandCount === 2 ? "double-48" : "bracelet-16";
+  return templates.find((t) => t.slug === slug) ?? activeTemplate;
 }

@@ -2,6 +2,7 @@ import type {
   BraceletLengthOption,
   OrderSizingMetadata,
   ProductType,
+  StrandCount,
 } from "@/types/database";
 
 /** Parse leading inches from labels like 7" or 7.5" */
@@ -39,6 +40,7 @@ export function buildOrderSizingMetadata(input: {
   templateSlug: string;
   lengthLabel: string | null;
   slotCount: number;
+  strandCount?: StrandCount;
   measuredCircumferenceIn?: number | null;
   arPreviewUsed?: boolean;
 }): OrderSizingMetadata {
@@ -53,6 +55,7 @@ export function buildOrderSizingMetadata(input: {
     length_label: input.lengthLabel,
     length_inches: lengthIn,
     slot_count: input.slotCount,
+    strand_count: input.strandCount ?? 1,
     measured_circumference_in: input.measuredCircumferenceIn ?? null,
     ar_preview_used: input.arPreviewUsed ?? false,
     captured_at: new Date().toISOString(),

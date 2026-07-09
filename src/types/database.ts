@@ -35,6 +35,8 @@ export type ProductType = "bracelet" | "necklace" | "dog_collar" | "anklet" | "s
 
 export type BeadShape = "round" | "faceted" | "rondelle";
 
+export type StrandCount = 1 | 2;
+
 /** Stored with orders for size confidence + future AR replay */
 export interface OrderSizingMetadata {
   product_type: ProductType;
@@ -43,6 +45,7 @@ export interface OrderSizingMetadata {
   length_label: string | null;
   length_inches: number | null;
   slot_count: number;
+  strand_count?: StrandCount;
   measured_circumference_in: number | null;
   ar_preview_used: boolean;
   captured_at: string;

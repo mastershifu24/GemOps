@@ -2,8 +2,9 @@
 
 import { BraceletLengthPicker } from "@/components/customizer/BraceletLengthPicker";
 import { BeadSizePicker } from "@/components/customizer/BeadSizePicker";
+import { StrandCountToggle } from "@/components/customizer/StrandCountToggle";
 import { TemplateToggle } from "@/components/customizer/TemplateToggle";
-import type { BeadShape, BraceletLengthOption, DesignTemplate } from "@/types/database";
+import type { BeadShape, BraceletLengthOption, DesignTemplate, StrandCount } from "@/types/database";
 
 interface DesignControlsProps {
   templates: DesignTemplate[];
@@ -12,6 +13,7 @@ interface DesignControlsProps {
   lengthOptions: BraceletLengthOption[] | null;
   selectedLength: BraceletLengthOption | null;
   activeSlotCount: number;
+  perRingSlotCount?: number;
   lengthLabel: string;
   onLengthChange: (option: BraceletLengthOption) => void;
   selectedBeadMm: number;
@@ -24,6 +26,9 @@ interface DesignControlsProps {
   onTryAr?: () => void;
   cameraAvailable?: boolean;
   arPreviewUsed?: boolean;
+  showStrandToggle?: boolean;
+  strandCount?: StrandCount;
+  onStrandCountChange?: (count: StrandCount) => void;
 }
 
 export function DesignControls({
@@ -33,6 +38,7 @@ export function DesignControls({
   lengthOptions,
   selectedLength,
   activeSlotCount,
+  perRingSlotCount,
   lengthLabel,
   onLengthChange,
   selectedBeadMm,
@@ -45,6 +51,9 @@ export function DesignControls({
   onTryAr,
   cameraAvailable = false,
   arPreviewUsed = false,
+  showStrandToggle = false,
+  strandCount = 1,
+  onStrandCountChange,
 }: DesignControlsProps) {
   return (
     <section className="rounded-xl border border-white/10 bg-gem-slate/60 p-4">
@@ -68,9 +77,16 @@ export function DesignControls({
         {lengthOptions && selectedLength && (
           <BraceletLengthPicker
             options={lengthOptions}
-            selectedSlotCount={activeSlotCount}
+            selectedSlotCount={perRingSlotCount ?? activeSlotCount}
             onChange={onLengthChange}
             label={lengthLabel}
+          />
+        )}
+
+        {showStrandToggle && onStrandCountChange && (
+          <StrandCountToggle
+            value={strandCount}
+            onChange={onStrandCountChange}
           />
         )}
 

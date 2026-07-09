@@ -8,6 +8,7 @@ import {
   findNextEmptySlotIndex,
   generateOrderCode,
   migrateSlotsToCount,
+  mirrorSlotsToDoubleStrand,
   SEED_COMPONENTS,
   SEED_TEMPLATES,
   toSlotAssignment,
@@ -19,13 +20,16 @@ import {
   getDefaultLengthOption,
   getDefaultCustomizerTemplate,
   getLengthOptions,
-  getPreviewCenterLabel,
   getProductType,
   getSizePickerLabel,
-  getTemplateLayout,
   isSequentialFill,
-  resolveSlotCount,
+  resolveOrderTemplate,
+  resolvePerRingSlotCount,
+  resolvePreviewLayout,
+  resolvePreviewLabel,
+  resolveTotalSlotCount,
   sortCustomizerTemplates,
+  supportsStrandToggle,
 } from "@/lib/template-layout";
 import { getArPlacement } from "@/lib/ar/scene-descriptor";
 import { buildOrderSizingMetadata, supportsCamera } from "@/lib/ar/sizing";
@@ -45,6 +49,7 @@ import type {
   DesignTemplate,
   SlotAssignment,
   SlotState,
+  StrandCount,
 } from "@/types/database";
 
 type Phase = "designing" | "finalized";
@@ -62,13 +67,16 @@ export function CustomerCustomizer() {
   const [templates, setTemplates] = useState<DesignTemplate[]>(
     sortCustomizerTemplates(SEED_TEMPLATES)
   );
+  const [allTemplates, setAllTemplates] =
+    useState<DesignTemplate[]>(SEED_TEMPLATES);
   const [components, setComponents] = useState<Component[]>(SEED_COMPONENTS);
   const [activeTemplate, setActiveTemplate] =
     useState<DesignTemplate>(INITIAL_TEMPLATE);
+  const [strandCount, setStrandCount] = useState<StrandCount>(1);
   const [selectedLength, setSelectedLength] =
     useState<BraceletLengthOption | null>(INITIAL_LENGTH);
   const [slots, setSlots] = useState<SlotState[]>(() =>
-    createEmptySlots(resolveSlotCount(INITIAL_TEMPLATE, INITIAL_LENGTH))
+    createEmptySlots(resolveTotalSlotCount(INITIAL_TEMPLATE, INITIAL_LENGTH, 1))
   );
   const [selectedStone, setSelectedStone] = useState<Component | null>(null);
   const [selectedBeadMm, setSelectedBeadMm] = useState(8);
@@ -114,16 +122,17 @@ export function CustomerCustomizer() {
       ]);
 
       if (templatesRes.data?.length) {
-        const loaded = sortCustomizerTemplates(
-          templatesRes.data as DesignTemplate[]
-        );
-        const defaultTemplate = getDefaultCustomizerTemplate(loaded);
+        const loaded = templatesRes.data as DesignTemplate[];
+        const visible = sortCustomizerTemplates(loaded);
+        const defaultTemplate = getDefaultCustomizerTemplate(visible);
         const defaultLength = getDefaultLengthOption(defaultTemplate);
-        setTemplates(loaded);
+        setAllTemplates(loaded);
+        setTemplates(visible);
         setActiveTemplate(defaultTemplate);
+        setStrandCount(1);
         setSelectedLength(defaultLength);
         setSlots(
-          createEmptySlots(resolveSlotCount(defaultTemplate, defaultLength))
+          createEmptySlots(resolveTotalSlotCount(defaultTemplate, defaultLength, 1))
         );
       }
 
@@ -134,14 +143,21 @@ export function CustomerCustomizer() {
   }, []);
 
   const lengthOptions = getLengthOptions(activeTemplate);
-  const activeSlotCount = resolveSlotCount(activeTemplate, selectedLength);
+  const perRingSlotCount = resolvePerRingSlotCount(activeTemplate, selectedLength);
+  const activeSlotCount = resolveTotalSlotCount(
+    activeTemplate,
+    selectedLength,
+    strandCount
+  );
   const filledCount = useMemo(() => countFilledSlots(slots), [slots]);
   const remainingCount = activeSlotCount - filledCount;
   const nextEmptyIndex = useMemo(() => findNextEmptySlotIndex(slots), [slots]);
   const patternMode = patternDraft !== null && patternDraft.stoneB === null;
-  const templateLayout = getTemplateLayout(activeTemplate);
+  const previewLayout = resolvePreviewLayout(activeTemplate, strandCount);
+  const previewLabel = resolvePreviewLabel(activeTemplate, strandCount);
   const productType = getProductType(activeTemplate);
   const sequentialOnly = isSequentialFill(activeTemplate);
+  const showStrandToggle = supportsStrandToggle(activeTemplate);
   const showBulkActions = !sequentialOnly;
   const claspComponents = useMemo(
     () => components.filter((c) => c.component_type === "clasp"),
@@ -152,15 +168,33 @@ export function CustomerCustomizer() {
     (index: number, component: Component) => {
       setSlots((prev) => {
         if (index < 0 || index >= prev.length) return prev;
-        const next = [...prev];
-        next[index] = toSlotAssignment(component, index, {
+        const assignment = toSlotAssignment(component, index, {
           beadSizeMm: selectedBeadMm,
           beadShape: selectedBeadShape,
         });
+        const next = [...prev];
+        next[index] = assignment;
+
+        if (strandCount === 2 && supportsStrandToggle(activeTemplate)) {
+          const pair =
+            index < perRingSlotCount
+              ? index + perRingSlotCount
+              : index - perRingSlotCount;
+          if (pair >= 0 && pair < next.length) {
+            next[pair] = { ...assignment, slot_index: pair };
+          }
+        }
+
         return next;
       });
     },
-    [selectedBeadMm, selectedBeadShape]
+    [
+      selectedBeadMm,
+      selectedBeadShape,
+      strandCount,
+      activeTemplate,
+      perRingSlotCount,
+    ]
   );
 
   const assignToSlot = useCallback(
@@ -214,7 +248,10 @@ export function CustomerCustomizer() {
 
   const resetDesign = useCallback(
     (template: DesignTemplate, length: BraceletLengthOption | null) => {
-      setSlots(createEmptySlots(resolveSlotCount(template, length)));
+      setStrandCount(1);
+      setSlots(
+        createEmptySlots(resolveTotalSlotCount(template, length, 1))
+      );
       setSelectedStone(null);
       setPatternDraft(null);
       setError(null);
@@ -225,14 +262,37 @@ export function CustomerCustomizer() {
   const handleTemplateChange = useCallback(
     (template: DesignTemplate) => {
       const defaultLength = getDefaultLengthOption(template);
-      const newCount = resolveSlotCount(template, defaultLength);
+      const perRing = resolvePerRingSlotCount(template, defaultLength);
       setActiveTemplate(template);
+      setStrandCount(1);
       setSelectedLength(defaultLength);
-      setSlots((prev) => migrateSlotsToCount(prev, newCount));
+      setSlots((prev) =>
+        migrateSlotsToCount(prev.slice(0, perRingSlotCount), perRing)
+      );
       setPatternDraft(null);
       setError(null);
     },
-    []
+    [perRingSlotCount]
+  );
+
+  const handleStrandCountChange = useCallback(
+    (count: StrandCount) => {
+      if (count === strandCount) return;
+      setStrandCount(count);
+      setSlots((prev) => {
+        const inner = migrateSlotsToCount(
+          prev.slice(0, perRingSlotCount),
+          perRingSlotCount
+        );
+        if (count === 2) {
+          return mirrorSlotsToDoubleStrand(inner, perRingSlotCount);
+        }
+        return inner;
+      });
+      setPatternDraft(null);
+      setError(null);
+    },
+    [strandCount, perRingSlotCount]
   );
 
   const handleLengthChange = useCallback(
@@ -240,13 +300,22 @@ export function CustomerCustomizer() {
       if (measuredInches !== undefined) {
         setMeasuredCircumferenceIn(measuredInches);
       }
-      if (option.slot_count === activeSlotCount) return;
+      if (option.slot_count === perRingSlotCount) return;
       setSelectedLength(option);
-      setSlots((prev) => migrateSlotsToCount(prev, option.slot_count));
+      setSlots((prev) => {
+        const inner = migrateSlotsToCount(
+          prev.slice(0, perRingSlotCount),
+          option.slot_count
+        );
+        if (strandCount === 2) {
+          return mirrorSlotsToDoubleStrand(inner, option.slot_count);
+        }
+        return inner;
+      });
       setPatternDraft(null);
       setError(null);
     },
-    [activeSlotCount]
+    [perRingSlotCount, strandCount]
   );
 
   const handleClearAll = useCallback(() => {
@@ -329,12 +398,21 @@ export function CustomerCustomizer() {
     const lengthLabel = selectedLength
       ? formatLengthLabel(selectedLength)
       : null;
+    const orderTemplate = resolveOrderTemplate(
+      allTemplates,
+      activeTemplate,
+      strandCount
+    );
     const sizingMetadata = buildOrderSizingMetadata({
       productType,
-      templateName: activeTemplate.name,
-      templateSlug: activeTemplate.slug,
+      templateName:
+        strandCount === 2
+          ? `${activeTemplate.name} · Double strand`
+          : activeTemplate.name,
+      templateSlug: orderTemplate.slug,
       lengthLabel,
       slotCount: activeSlotCount,
+      strandCount,
       measuredCircumferenceIn,
       arPreviewUsed,
     });
@@ -345,7 +423,7 @@ export function CustomerCustomizer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           order_code: code,
-          design_template_id: activeTemplate.id,
+          design_template_id: orderTemplate.id,
           slot_layout: layout,
           total_slot_count: activeSlotCount,
           filled_slot_count: filledCount,
@@ -371,15 +449,15 @@ export function CustomerCustomizer() {
     }
   }, [
     activeSlotCount,
-    activeTemplate.id,
-    activeTemplate.name,
-    activeTemplate.slug,
+    activeTemplate,
+    allTemplates,
     arPreviewUsed,
     filledCount,
     measuredCircumferenceIn,
     productType,
     selectedLength,
     slots,
+    strandCount,
   ]);
 
   const handleStartOver = useCallback(() => {
@@ -396,7 +474,11 @@ export function CustomerCustomizer() {
         orderCode={orderCode}
         filledCount={filledCount}
         totalSlots={activeSlotCount}
-        templateName={activeTemplate.name}
+        templateName={
+          strandCount === 2
+            ? `${activeTemplate.name} · Double strand`
+            : activeTemplate.name
+        }
         wristLengthLabel={lockedLengthLabel}
         totalCents={orderTotalCents}
         onStartOver={handleStartOver}
@@ -414,9 +496,9 @@ export function CustomerCustomizer() {
             activeSlotIndex: nextEmptyIndex,
             filledCount,
             totalSlots: activeSlotCount,
-            layout: templateLayout,
+            layout: previewLayout,
             productType,
-            previewLabel: getPreviewCenterLabel(activeTemplate),
+            previewLabel,
             sequentialOnly,
             onSlotTap: handleSlotTap,
           }}
@@ -433,6 +515,7 @@ export function CustomerCustomizer() {
           lengthOptions={lengthOptions}
           selectedLength={selectedLength}
           activeSlotCount={activeSlotCount}
+          perRingSlotCount={perRingSlotCount}
           lengthLabel={getSizePickerLabel(activeTemplate)}
           onLengthChange={handleLengthChange}
           selectedBeadMm={selectedBeadMm}
@@ -448,6 +531,9 @@ export function CustomerCustomizer() {
           }}
           cameraAvailable={cameraAvailable}
           arPreviewUsed={arPreviewUsed}
+          showStrandToggle={showStrandToggle}
+          strandCount={strandCount}
+          onStrandCountChange={handleStrandCountChange}
         />
 
         {showMeasureGuide && (
@@ -466,9 +552,9 @@ export function CustomerCustomizer() {
           placement={getArPlacement(productType)}
           slots={slots}
           activeSlotIndex={nextEmptyIndex}
-          layout={templateLayout}
+          layout={previewLayout}
           productType={productType}
-          previewLabel={getPreviewCenterLabel(activeTemplate)}
+          previewLabel={previewLabel}
           sequentialOnly={sequentialOnly}
           onSlotTap={handleSlotTap}
         />

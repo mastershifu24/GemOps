@@ -29,7 +29,7 @@ export function SplineViewer({ className = "", strand }: SplineViewerProps) {
   const hasStrand = strand !== undefined;
   const layout = strand?.layout ?? "linear";
   const productType = strand?.productType ?? "strand";
-  const previewKey = `${productType}-${layout}-${strand?.totalSlots ?? 0}`;
+  const previewKey = `${productType}-${layout}-${strand?.totalSlots ?? 0}-${strand?.slots.filter(Boolean).length ?? 0}`;
 
   return (
     <div
