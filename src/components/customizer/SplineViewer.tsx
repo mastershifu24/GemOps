@@ -13,6 +13,7 @@ export interface StrandOverlayProps {
   productType?: ProductType;
   previewLabel?: string;
   sequentialOnly?: boolean;
+  strandCount?: 1 | 2;
   onSlotTap?: (index: number) => void;
 }
 
@@ -46,6 +47,7 @@ export function SplineViewer({ className = "", strand }: SplineViewerProps) {
             productType={productType}
             centerLabel={strand.previewLabel ?? "Your Design"}
             sequentialOnly={strand.sequentialOnly}
+            strandCount={strand.strandCount ?? 1}
             onSlotTap={strand.onSlotTap}
             className="max-h-full w-full"
           />

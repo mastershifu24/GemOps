@@ -67,6 +67,10 @@ body {
       0 12px 40px rgba(0, 0, 0, 0.35);
   }
 
+  .product-strand-cord {
+    filter: drop-shadow(0 2px 8px rgba(201, 169, 98, 0.25));
+  }
+
   .product-silhouette-float {
     animation: product-float 6s ease-in-out infinite;
   }

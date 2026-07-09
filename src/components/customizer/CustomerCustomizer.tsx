@@ -500,6 +500,7 @@ export function CustomerCustomizer() {
             productType,
             previewLabel,
             sequentialOnly,
+            strandCount,
             onSlotTap: handleSlotTap,
           }}
         />
@@ -556,6 +557,7 @@ export function CustomerCustomizer() {
           productType={productType}
           previewLabel={previewLabel}
           sequentialOnly={sequentialOnly}
+          strandCount={strandCount}
           onSlotTap={handleSlotTap}
         />
 

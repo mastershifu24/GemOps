@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ProductModelViewer } from "@/components/customizer/ProductModelViewer";
 import type { TemplateLayout } from "@/lib/template-layout";
 import type { ArPlacementHint } from "@/types/ar";
-import type { ProductType, SlotState } from "@/types/database";
+import type { ProductType, SlotState, StrandCount } from "@/types/database";
 
 interface CameraArPreviewProps {
   open: boolean;
@@ -16,6 +16,7 @@ interface CameraArPreviewProps {
   productType: ProductType;
   previewLabel: string;
   sequentialOnly?: boolean;
+  strandCount?: StrandCount;
   onSlotTap?: (index: number) => void;
 }
 
@@ -29,6 +30,7 @@ export function CameraArPreview({
   productType,
   previewLabel,
   sequentialOnly,
+  strandCount = 1,
   onSlotTap,
 }: CameraArPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -107,6 +109,7 @@ export function CameraArPreview({
             productType={productType}
             centerLabel={previewLabel}
             sequentialOnly={sequentialOnly}
+            strandCount={strandCount}
             onSlotTap={onSlotTap}
             enableSpin={false}
             className="drop-shadow-2xl"

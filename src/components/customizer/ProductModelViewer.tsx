@@ -2,6 +2,10 @@
 
 import { ProductBeadSlot } from "@/components/customizer/ProductBeadSlot";
 import {
+  DoubleStrandTwist,
+  StrandRingThread,
+} from "@/components/customizer/StrandRingThread";
+import {
   layoutUsesArc,
   layoutUsesLayered,
   layoutUsesRing,
@@ -22,6 +26,8 @@ interface ProductModelViewerProps {
   onSlotTap?: (index: number) => void;
   className?: string;
   enableSpin?: boolean;
+  /** 1 = single cord loop, 2 = intertwined double loops (bracelet only) */
+  strandCount?: 1 | 2;
 }
 
 export function ProductModelViewer({
@@ -34,6 +40,7 @@ export function ProductModelViewer({
   onSlotTap,
   className = "",
   enableSpin = true,
+  strandCount = 1,
 }: ProductModelViewerProps) {
   const total = slots.length;
   const compact = total > 20;
@@ -41,6 +48,9 @@ export function ProductModelViewer({
   const isRing = layoutUsesRing(layout);
   const isLayered = layoutUsesLayered(layout);
   const isArc = layoutUsesArc(layout);
+  const showStrandThreads =
+    productType === "bracelet" && (isRing || isLayered);
+  const innerRadius = radiusPercent - 6;
   const spinsRing =
     enableSpin &&
     (productType === "bracelet" ||
@@ -66,15 +76,38 @@ export function ProductModelViewer({
             spinsRing ? "bracelet-ring-spin" : ""
           }`}
         >
-          {isRing && (
+          {showStrandThreads && (
+            <>
+              {isLayered && strandCount === 2 ? (
+                <>
+                  <StrandRingThread
+                    radiusPercent={innerRadius}
+                    variant="inner"
+                  />
+                  <StrandRingThread
+                    radiusPercent={radiusPercent}
+                    variant="outer"
+                  />
+                  <DoubleStrandTwist
+                    innerRadiusPercent={innerRadius}
+                    outerRadiusPercent={radiusPercent}
+                  />
+                </>
+              ) : (
+                <StrandRingThread radiusPercent={radiusPercent} variant="single" />
+              )}
+            </>
+          )}
+
+          {isRing && !showStrandThreads && (
             <>
               {isLayered ? (
                 <>
                   <div
                     className="pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/20 shadow-[0_0_20px_rgba(201,169,98,0.08)] product-bracelet-band"
                     style={{
-                      width: `${(radiusPercent - 6) * 2}%`,
-                      height: `${(radiusPercent - 6) * 2}%`,
+                      width: `${innerRadius * 2}%`,
+                      height: `${innerRadius * 2}%`,
                       transform: "translate(-50%, -50%)",
                     }}
                   />
