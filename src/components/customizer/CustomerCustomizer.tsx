@@ -273,8 +273,20 @@ export function CustomerCustomizer() {
       }
 
       setSelectedStone(component);
+
+      const nextIndex = findNextEmptySlotIndex(slots);
+      if (nextIndex !== null) {
+        placeComponent(nextIndex, component, { mirror: true });
+      }
     },
-    [patternDraft, selectedBeadMm, selectedBeadShape, selectedStone]
+    [
+      patternDraft,
+      selectedBeadMm,
+      selectedBeadShape,
+      selectedStone,
+      slots,
+      placeComponent,
+    ]
   );
 
   const resetDesign = useCallback(
@@ -637,8 +649,8 @@ export function CustomerCustomizer() {
           </p>
           <p className="mb-3 text-xs text-gem-mist/50">
             {showStrandToggle
-              ? "Select a stone and tap the strand or ring to place. Tap a filled bead to replace it, or tap without a stone selected to remove."
-              : "Pick size and shape above, then tap a stone — tap the preview to place or replace."}
+              ? "Tap a stone to place on the next slot — strand and ring stay in sync. Tap any filled bead to replace; tap again with no stone selected to remove."
+              : "Tap a stone to place on the next slot. Tap a filled bead to replace it."}
           </p>
           <StonePalette
             components={components}
