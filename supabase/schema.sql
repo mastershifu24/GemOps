@@ -263,13 +263,13 @@ VALUES
   )
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO public.components (name, component_type, sku, display_color, configuration_rules)
+INSERT INTO public.components (name, component_type, sku, display_color, unit_cost_cents, configuration_rules)
 VALUES
-  ('Onyx',       'bead', 'BD-ONYX',   '#1a1a1a', '{"finish": "matte", "diameter_mm": 8}'::jsonb),
-  ('Moonstone',  'bead', 'BD-MOON',   '#e8e4f0', '{"finish": "glow",  "diameter_mm": 8}'::jsonb),
-  ('Rose Quartz','bead', 'BD-ROSE',   '#f4c2c2', '{"finish": "polish","diameter_mm": 8}'::jsonb),
-  ('Lapis',      'bead', 'BD-LAPIS',  '#1e3a5f', '{"finish": "polish","diameter_mm": 8}'::jsonb),
-  ('Citrine',    'bead', 'BD-CITR',   '#e4a82a', '{"finish": "faceted","diameter_mm": 8}'::jsonb),
-  ('Spacer',     'spacer','SP-GLD',   '#c9a962', '{"finish": "metal", "diameter_mm": 4}'::jsonb),
-  ('Gold Clasp', 'clasp', 'CL-GOLD',  '#c9a962', '{"finish": "metal", "role": "closure"}'::jsonb)
+  ('Onyx',       'bead', 'BD-ONYX',   '#1a1a1a',  800, '{"finish": "matte", "diameter_mm": 8}'::jsonb),
+  ('Moonstone',  'bead', 'BD-MOON',   '#e8e4f0', 1200, '{"finish": "glow",  "diameter_mm": 8}'::jsonb),
+  ('Rose Quartz','bead', 'BD-ROSE',   '#f4c2c2',  900, '{"finish": "polish","diameter_mm": 8}'::jsonb),
+  ('Lapis',      'bead', 'BD-LAPIS',  '#1e3a5f', 1100, '{"finish": "polish","diameter_mm": 8}'::jsonb),
+  ('Citrine',    'bead', 'BD-CITR',   '#e4a82a', 1000, '{"finish": "faceted","diameter_mm": 8}'::jsonb),
+  ('Spacer',     'spacer','SP-GLD',   '#c9a962',  300, '{"finish": "metal", "diameter_mm": 4}'::jsonb),
+  ('Gold Clasp', 'clasp', 'CL-GOLD',  '#c9a962', 1500, '{"finish": "metal", "role": "closure"}'::jsonb)
 ON CONFLICT (sku) DO NOTHING;
