@@ -177,8 +177,9 @@ export const SEED_TEMPLATES: DesignTemplate[] = [
     description: "Single-strand bracelet, 24 bead slots",
     slot_count: 24,
     configuration_rules: {
-      layout: "linear",
+      layout: "radial",
       product_type: "strand",
+      fill_mode: "sequential",
       assembly_direction: "left_to_right",
       slots: [],
     },
@@ -192,8 +193,9 @@ export const SEED_TEMPLATES: DesignTemplate[] = [
     description: "Double-strand bracelet, 48 bead slots",
     slot_count: 48,
     configuration_rules: {
-      layout: "linear",
+      layout: "layered",
       product_type: "strand",
+      fill_mode: "sequential",
       assembly_direction: "left_to_right",
       slots: [],
     },
@@ -254,6 +256,22 @@ function segmentLabel(slot: SlotAssignment): string {
 
 export function createEmptySlots(count: number): (SlotAssignment | null)[] {
   return Array.from({ length: count }, () => null);
+}
+
+/** Keep filled beads when switching jewelry type or length */
+export function migrateSlotsToCount(
+  prev: (SlotAssignment | null)[],
+  newCount: number
+): (SlotAssignment | null)[] {
+  const next = createEmptySlots(newCount);
+  const limit = Math.min(prev.length, newCount);
+  for (let i = 0; i < limit; i++) {
+    const slot = prev[i];
+    if (slot !== null) {
+      next[i] = { ...slot, slot_index: i };
+    }
+  }
+  return next;
 }
 
 export function findNextEmptySlotIndex(

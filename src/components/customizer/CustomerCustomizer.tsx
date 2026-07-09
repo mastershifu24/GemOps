@@ -7,6 +7,7 @@ import {
   createEmptySlots,
   findNextEmptySlotIndex,
   generateOrderCode,
+  migrateSlotsToCount,
   SEED_COMPONENTS,
   SEED_TEMPLATES,
   toSlotAssignment,
@@ -224,11 +225,14 @@ export function CustomerCustomizer() {
   const handleTemplateChange = useCallback(
     (template: DesignTemplate) => {
       const defaultLength = getDefaultLengthOption(template);
+      const newCount = resolveSlotCount(template, defaultLength);
       setActiveTemplate(template);
       setSelectedLength(defaultLength);
-      resetDesign(template, defaultLength);
+      setSlots((prev) => migrateSlotsToCount(prev, newCount));
+      setPatternDraft(null);
+      setError(null);
     },
-    [resetDesign]
+    []
   );
 
   const handleLengthChange = useCallback(
@@ -238,9 +242,11 @@ export function CustomerCustomizer() {
       }
       if (option.slot_count === activeSlotCount) return;
       setSelectedLength(option);
-      resetDesign(activeTemplate, option);
+      setSlots((prev) => migrateSlotsToCount(prev, option.slot_count));
+      setPatternDraft(null);
+      setError(null);
     },
-    [activeSlotCount, activeTemplate, resetDesign]
+    [activeSlotCount]
   );
 
   const handleClearAll = useCallback(() => {

@@ -96,3 +96,25 @@ ON CONFLICT (slug) DO NOTHING;
 UPDATE public.design_templates
 SET configuration_rules = configuration_rules || '{"product_type": "strand"}'::jsonb
 WHERE slug IN ('classic-24', 'double-48');
+
+UPDATE public.design_templates
+SET
+  configuration_rules = jsonb_set(
+    configuration_rules,
+    '{layout}',
+    '"radial"'
+  ) || '{"fill_mode": "sequential"}'::jsonb
+WHERE slug = 'classic-24';
+
+UPDATE public.design_templates
+SET
+  configuration_rules = jsonb_set(
+    configuration_rules,
+    '{layout}',
+    '"layered"'
+  ) || '{"fill_mode": "sequential"}'::jsonb
+WHERE slug = 'double-48';
+
+UPDATE public.design_templates
+SET is_active = false
+WHERE slug = 'dog-collar-16';

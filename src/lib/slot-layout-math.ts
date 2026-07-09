@@ -40,7 +40,25 @@ export function linearSlotPosition(
 }
 
 export function layoutUsesRing(layout: TemplateLayout): boolean {
-  return layout === "radial";
+  return layout === "radial" || layout === "layered";
+}
+
+export function layoutUsesLayered(layout: TemplateLayout): boolean {
+  return layout === "layered";
+}
+
+/** Double strand: inner ring then outer ring */
+export function layeredSlotPosition(
+  index: number,
+  total: number,
+  innerRadius: number,
+  outerRadius: number
+): { x: number; y: number } {
+  const perRing = total / 2;
+  if (index < perRing) {
+    return ringSlotPosition(index, perRing, innerRadius);
+  }
+  return ringSlotPosition(index - perRing, perRing, outerRadius);
 }
 
 export function layoutUsesArc(layout: TemplateLayout): boolean {

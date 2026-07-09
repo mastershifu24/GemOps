@@ -121,23 +121,62 @@ export function getSizePickerLabel(template: DesignTemplate): string {
 
 export function getPreviewCenterLabel(template: DesignTemplate): string {
   const product = PRODUCT_LABELS[getProductType(template)];
+  if (getProductType(template) === "strand") {
+    return template.name;
+  }
   return `Your ${product}`;
 }
 
-/** Bracelet-first display order; strands stay visible beside wrist types */
+/** Bracelet-first display order; dog collar hidden from customizer for now */
 const CUSTOMIZER_TEMPLATE_ORDER: Record<string, number> = {
   "bracelet-16": 0,
   "classic-24": 1,
   "double-48": 2,
   "anklet-14": 3,
   "necklace-18": 4,
-  "dog-collar-16": 5,
 };
+
+const CUSTOMIZER_HIDDEN_SLUGS = new Set(["dog-collar-16"]);
+
+function normalizeCustomizerTemplate(template: DesignTemplate): DesignTemplate {
+  switch (template.slug) {
+    case "classic-24":
+      return {
+        ...template,
+        configuration_rules: {
+          ...template.configuration_rules,
+          layout: "radial",
+          product_type: "strand",
+          fill_mode: "sequential",
+        },
+      };
+    case "double-48":
+      return {
+        ...template,
+        configuration_rules: {
+          ...template.configuration_rules,
+          layout: "layered",
+          product_type: "strand",
+          fill_mode: "sequential",
+        },
+      };
+    default:
+      return template;
+  }
+}
+
+export function filterCustomizerTemplates(
+  templates: DesignTemplate[]
+): DesignTemplate[] {
+  return templates
+    .filter((t) => !CUSTOMIZER_HIDDEN_SLUGS.has(t.slug))
+    .map(normalizeCustomizerTemplate);
+}
 
 export function sortCustomizerTemplates(
   templates: DesignTemplate[]
 ): DesignTemplate[] {
-  return [...templates].sort((a, b) => {
+  return filterCustomizerTemplates(templates).sort((a, b) => {
     const left = CUSTOMIZER_TEMPLATE_ORDER[a.slug] ?? 99;
     const right = CUSTOMIZER_TEMPLATE_ORDER[b.slug] ?? 99;
     if (left !== right) return left - right;

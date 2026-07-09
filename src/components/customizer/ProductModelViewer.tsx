@@ -1,10 +1,11 @@
 "use client";
 
-import { BraceletSlotStrip } from "@/components/customizer/BraceletSlotStrip";
 import { ProductBeadSlot } from "@/components/customizer/ProductBeadSlot";
 import {
   layoutUsesArc,
+  layoutUsesLayered,
   layoutUsesRing,
+  layeredSlotPosition,
   necklaceSlotPosition,
   ringSlotPosition,
 } from "@/lib/slot-layout-math";
@@ -38,36 +39,18 @@ export function ProductModelViewer({
   const compact = total > 20;
   const radiusPercent = compact ? 38 : 42;
   const isRing = layoutUsesRing(layout);
+  const isLayered = layoutUsesLayered(layout);
   const isArc = layoutUsesArc(layout);
-  const isLinear = layout === "linear";
   const spinsRing =
     enableSpin &&
     (productType === "bracelet" ||
-      productType === "dog_collar" ||
-      productType === "anklet");
-
-  if (isLinear) {
-    return (
-      <div className={`product-preview-stage mx-auto w-full max-w-lg ${className}`}>
-        <div className="product-preview-tilt w-full px-1">
-          <p className="mb-2 text-center text-[10px] uppercase tracking-[0.25em] text-gem-gold">
-            {centerLabel}
-          </p>
-          <BraceletSlotStrip
-            slots={slots}
-            activeSlotIndex={activeSlotIndex}
-            onSlotTap={onSlotTap}
-            variant="overlay"
-          />
-          <p className="mt-2 text-center text-xs tabular-nums text-gem-mist/60">
-            {slots.filter(Boolean).length} / {total}
-          </p>
-        </div>
-      </div>
-    );
-  }
+      productType === "anklet" ||
+      productType === "strand");
 
   const getPosition = (index: number) => {
+    if (isLayered) {
+      return layeredSlotPosition(index, total, radiusPercent - 6, radiusPercent);
+    }
     if (isRing) return ringSlotPosition(index, total, radiusPercent);
     if (isArc) return necklaceSlotPosition(index, total, radiusPercent);
     return ringSlotPosition(index, total, radiusPercent);
@@ -84,16 +67,37 @@ export function ProductModelViewer({
           }`}
         >
           {isRing && (
-            <div
-              className={`pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/25 shadow-[0_0_30px_rgba(201,169,98,0.12)] ${
-                productType === "dog_collar" ? "product-collar-band" : "product-bracelet-band"
-              }`}
-              style={{
-                width: `${radiusPercent * 2}%`,
-                height: `${radiusPercent * 2}%`,
-                transform: "translate(-50%, -50%)",
-              }}
-            />
+            <>
+              {isLayered ? (
+                <>
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/20 shadow-[0_0_20px_rgba(201,169,98,0.08)] product-bracelet-band"
+                    style={{
+                      width: `${(radiusPercent - 6) * 2}%`,
+                      height: `${(radiusPercent - 6) * 2}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/25 shadow-[0_0_30px_rgba(201,169,98,0.12)] product-bracelet-band"
+                    style={{
+                      width: `${radiusPercent * 2}%`,
+                      height: `${radiusPercent * 2}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  />
+                </>
+              ) : (
+                <div
+                  className="pointer-events-none absolute left-1/2 top-1/2 rounded-full border-2 border-white/25 shadow-[0_0_30px_rgba(201,169,98,0.12)] product-bracelet-band"
+                  style={{
+                    width: `${radiusPercent * 2}%`,
+                    height: `${radiusPercent * 2}%`,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                />
+              )}
+            </>
           )}
 
           {isArc && (
