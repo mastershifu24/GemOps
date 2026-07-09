@@ -8,6 +8,7 @@ interface DevOrderInput {
   filled_slot_count: number;
   assembly_script: string;
   total_cents: number;
+  sizing_metadata?: Order["sizing_metadata"];
 }
 
 const devOrders = new Map<string, Order>();
@@ -34,6 +35,7 @@ export function createDevOrder(input: DevOrderInput): Order {
     total_cents: input.total_cents,
     payment_method: null,
     amount_paid_cents: null,
+    sizing_metadata: input.sizing_metadata ?? null,
     created_at: now,
     updated_at: now,
     paid_at: null,

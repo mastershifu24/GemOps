@@ -16,6 +16,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   formatLengthLabel,
   getDefaultLengthOption,
+  getDefaultCustomizerTemplate,
   getLengthOptions,
   getPreviewCenterLabel,
   getProductType,
@@ -23,8 +24,13 @@ import {
   getTemplateLayout,
   isSequentialFill,
   resolveSlotCount,
+  sortCustomizerTemplates,
 } from "@/lib/template-layout";
+import { getArPlacement } from "@/lib/ar/scene-descriptor";
+import { buildOrderSizingMetadata, supportsCamera } from "@/lib/ar/sizing";
 import { StoreHeader } from "@/components/brand/StoreHeader";
+import { CameraArPreview } from "@/components/ar/CameraArPreview";
+import { WristMeasureGuide } from "@/components/ar/WristMeasureGuide";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
 import { ClaspPicker } from "@/components/customizer/ClaspPicker";
@@ -52,7 +58,9 @@ const INITIAL_LENGTH = getDefaultLengthOption(INITIAL_TEMPLATE);
 
 export function CustomerCustomizer() {
   const [phase, setPhase] = useState<Phase>("designing");
-  const [templates, setTemplates] = useState<DesignTemplate[]>(SEED_TEMPLATES);
+  const [templates, setTemplates] = useState<DesignTemplate[]>(
+    sortCustomizerTemplates(SEED_TEMPLATES)
+  );
   const [components, setComponents] = useState<Component[]>(SEED_COMPONENTS);
   const [activeTemplate, setActiveTemplate] =
     useState<DesignTemplate>(INITIAL_TEMPLATE);
@@ -73,6 +81,17 @@ export function CustomerCustomizer() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMeasureGuide, setShowMeasureGuide] = useState(false);
+  const [showArPreview, setShowArPreview] = useState(false);
+  const [measuredCircumferenceIn, setMeasuredCircumferenceIn] = useState<
+    number | null
+  >(null);
+  const [arPreviewUsed, setArPreviewUsed] = useState(false);
+  const [cameraAvailable, setCameraAvailable] = useState(false);
+
+  useEffect(() => {
+    setCameraAvailable(supportsCamera());
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -85,8 +104,7 @@ export function CustomerCustomizer() {
         client
           .from("design_templates")
           .select("*")
-          .eq("is_active", true)
-          .order("slot_count"),
+          .eq("is_active", true),
         client
           .from("components")
           .select("*")
@@ -95,13 +113,17 @@ export function CustomerCustomizer() {
       ]);
 
       if (templatesRes.data?.length) {
-        const loaded = templatesRes.data as DesignTemplate[];
-        const first = loaded[0];
-        const defaultLength = getDefaultLengthOption(first);
+        const loaded = sortCustomizerTemplates(
+          templatesRes.data as DesignTemplate[]
+        );
+        const defaultTemplate = getDefaultCustomizerTemplate(loaded);
+        const defaultLength = getDefaultLengthOption(defaultTemplate);
         setTemplates(loaded);
-        setActiveTemplate(first);
+        setActiveTemplate(defaultTemplate);
         setSelectedLength(defaultLength);
-        setSlots(createEmptySlots(resolveSlotCount(first, defaultLength)));
+        setSlots(
+          createEmptySlots(resolveSlotCount(defaultTemplate, defaultLength))
+        );
       }
 
       if (componentsRes.data?.length) {
@@ -210,7 +232,10 @@ export function CustomerCustomizer() {
   );
 
   const handleLengthChange = useCallback(
-    (option: BraceletLengthOption) => {
+    (option: BraceletLengthOption, measuredInches?: number) => {
+      if (measuredInches !== undefined) {
+        setMeasuredCircumferenceIn(measuredInches);
+      }
       if (option.slot_count === activeSlotCount) return;
       setSelectedLength(option);
       resetDesign(activeTemplate, option);
@@ -298,6 +323,15 @@ export function CustomerCustomizer() {
     const lengthLabel = selectedLength
       ? formatLengthLabel(selectedLength)
       : null;
+    const sizingMetadata = buildOrderSizingMetadata({
+      productType,
+      templateName: activeTemplate.name,
+      templateSlug: activeTemplate.slug,
+      lengthLabel,
+      slotCount: activeSlotCount,
+      measuredCircumferenceIn,
+      arPreviewUsed,
+    });
 
     try {
       const response = await fetch("/api/orders", {
@@ -310,6 +344,7 @@ export function CustomerCustomizer() {
           total_slot_count: activeSlotCount,
           filled_slot_count: filledCount,
           assembly_script: script,
+          sizing_metadata: sizingMetadata,
         }),
       });
 
@@ -331,7 +366,12 @@ export function CustomerCustomizer() {
   }, [
     activeSlotCount,
     activeTemplate.id,
+    activeTemplate.name,
+    activeTemplate.slug,
+    arPreviewUsed,
     filledCount,
+    measuredCircumferenceIn,
+    productType,
     selectedLength,
     slots,
   ]);
@@ -395,6 +435,36 @@ export function CustomerCustomizer() {
           onBeadShapeChange={setSelectedBeadShape}
           onClearAll={handleClearAll}
           filledCount={filledCount}
+          onMeasureSize={() => setShowMeasureGuide(true)}
+          onTryAr={() => {
+            setArPreviewUsed(true);
+            setShowArPreview(true);
+          }}
+          cameraAvailable={cameraAvailable}
+          arPreviewUsed={arPreviewUsed}
+        />
+
+        {showMeasureGuide && (
+          <WristMeasureGuide
+            productType={productType}
+            lengthOptions={lengthOptions}
+            currentLength={selectedLength}
+            onApplyLength={handleLengthChange}
+            onClose={() => setShowMeasureGuide(false)}
+          />
+        )}
+
+        <CameraArPreview
+          open={showArPreview}
+          onClose={() => setShowArPreview(false)}
+          placement={getArPlacement(productType)}
+          slots={slots}
+          activeSlotIndex={nextEmptyIndex}
+          layout={templateLayout}
+          productType={productType}
+          previewLabel={getPreviewCenterLabel(activeTemplate)}
+          sequentialOnly={sequentialOnly}
+          onSlotTap={handleSlotTap}
         />
 
         <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">

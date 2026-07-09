@@ -20,6 +20,7 @@ interface ProductModelViewerProps {
   sequentialOnly?: boolean;
   onSlotTap?: (index: number) => void;
   className?: string;
+  enableSpin?: boolean;
 }
 
 export function ProductModelViewer({
@@ -31,6 +32,7 @@ export function ProductModelViewer({
   sequentialOnly = false,
   onSlotTap,
   className = "",
+  enableSpin = true,
 }: ProductModelViewerProps) {
   const total = slots.length;
   const compact = total > 20;
@@ -39,9 +41,10 @@ export function ProductModelViewer({
   const isArc = layoutUsesArc(layout);
   const isLinear = layout === "linear";
   const spinsRing =
-    productType === "bracelet" ||
-    productType === "dog_collar" ||
-    productType === "anklet";
+    enableSpin &&
+    (productType === "bracelet" ||
+      productType === "dog_collar" ||
+      productType === "anklet");
 
   if (isLinear) {
     return (

@@ -124,6 +124,7 @@ export function DemoWalkthrough() {
         total_cents: created.total_cents ?? 0,
         payment_method: null,
         amount_paid_cents: null,
+        sizing_metadata: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         paid_at: null,

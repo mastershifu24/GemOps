@@ -35,6 +35,19 @@ export type ProductType = "bracelet" | "necklace" | "dog_collar" | "anklet" | "s
 
 export type BeadShape = "round" | "faceted" | "rondelle";
 
+/** Stored with orders for size confidence + future AR replay */
+export interface OrderSizingMetadata {
+  product_type: ProductType;
+  template_name: string;
+  template_slug: string;
+  length_label: string | null;
+  length_inches: number | null;
+  slot_count: number;
+  measured_circumference_in: number | null;
+  ar_preview_used: boolean;
+  captured_at: string;
+}
+
 export interface TemplateConfigurationRules {
   layout: "linear" | "radial" | "arc" | "layered";
   product_type?: ProductType;
@@ -105,6 +118,7 @@ export interface Order {
   total_cents: number;
   payment_method: PaymentMethod | null;
   amount_paid_cents: number | null;
+  sizing_metadata: OrderSizingMetadata | null;
   created_at: string;
   updated_at: string;
   paid_at: string | null;

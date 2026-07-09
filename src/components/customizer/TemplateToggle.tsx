@@ -16,8 +16,8 @@ export function TemplateToggle({
   disabled = false,
 }: TemplateToggleProps) {
   return (
-    <div className="overflow-x-auto">
-      <div className="flex min-w-max gap-1 rounded-xl border border-white/10 bg-gem-slate p-1">
+    <div className="rounded-xl border border-white/10 bg-gem-slate p-1">
+      <div className="grid grid-cols-3 gap-1">
       {templates.map((template) => {
         const isActive = template.id === activeTemplateId;
 
@@ -27,14 +27,14 @@ export function TemplateToggle({
             type="button"
             disabled={disabled}
             onClick={() => onChange(template)}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-xs transition sm:text-sm ${
+            className={`rounded-lg px-2 py-2 text-center text-xs transition sm:px-3 sm:text-sm ${
               isActive
                 ? "bg-gem-gold text-gem-ink"
                 : "text-gem-mist/70 hover:text-gem-mist"
             } ${disabled ? "opacity-40" : ""}`}
           >
-            <span className="block font-medium">{template.name}</span>
-            <span className={`block text-[10px] ${isActive ? "text-gem-ink/70" : "text-gem-mist/40"}`}>
+            <span className="block font-medium leading-tight">{template.name}</span>
+            <span className={`mt-0.5 block text-[10px] ${isActive ? "text-gem-ink/70" : "text-gem-mist/40"}`}>
               {template.slot_count} slots
             </span>
           </button>

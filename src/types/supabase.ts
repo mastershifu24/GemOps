@@ -97,6 +97,7 @@ export interface Database {
           total_cents: number;
           payment_method: string | null;
           amount_paid_cents: number | null;
+          sizing_metadata: Json | null;
           created_at: string;
           updated_at: string;
           paid_at: string | null;
@@ -114,6 +115,7 @@ export interface Database {
           total_cents?: number;
           payment_method?: string | null;
           amount_paid_cents?: number | null;
+          sizing_metadata?: Json | null;
           created_at?: string;
           updated_at?: string;
           paid_at?: string | null;
@@ -131,6 +133,7 @@ export interface Database {
           total_cents?: number;
           payment_method?: string | null;
           amount_paid_cents?: number | null;
+          sizing_metadata?: Json | null;
           created_at?: string;
           updated_at?: string;
           paid_at?: string | null;

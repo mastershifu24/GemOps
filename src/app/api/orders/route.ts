@@ -7,7 +7,7 @@ import {
 } from "@/lib/dev-orders";
 import { calculateOrderTotalCents } from "@/lib/pricing";
 import { createApiClient } from "@/lib/supabase/api";
-import type { SlotAssignment } from "@/types/database";
+import type { OrderSizingMetadata, SlotAssignment } from "@/types/database";
 import type { Database, Json } from "@/types/supabase";
 
 type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
@@ -19,6 +19,7 @@ interface CreateOrderBody {
   total_slot_count: number;
   filled_slot_count: number;
   assembly_script?: string;
+  sizing_metadata?: OrderSizingMetadata | null;
 }
 
 export async function POST(request: Request) {
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
       filled_slot_count: body.filled_slot_count,
       assembly_script: assemblyScript,
       total_cents: totalCents,
+      sizing_metadata: body.sizing_metadata ?? null,
     });
 
     return NextResponse.json({
@@ -68,6 +70,7 @@ export async function POST(request: Request) {
       assembly_script: assemblyScript,
       status: "pending_payment",
       total_cents: totalCents,
+      sizing_metadata: (body.sizing_metadata ?? null) as unknown as Json,
     };
 
     const { data, error } = await supabase

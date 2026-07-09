@@ -20,6 +20,10 @@ interface DesignControlsProps {
   onBeadShapeChange: (shape: BeadShape) => void;
   onClearAll: () => void;
   filledCount: number;
+  onMeasureSize?: () => void;
+  onTryAr?: () => void;
+  cameraAvailable?: boolean;
+  arPreviewUsed?: boolean;
 }
 
 export function DesignControls({
@@ -37,6 +41,10 @@ export function DesignControls({
   onBeadShapeChange,
   onClearAll,
   filledCount,
+  onMeasureSize,
+  onTryAr,
+  cameraAvailable = false,
+  arPreviewUsed = false,
 }: DesignControlsProps) {
   return (
     <section className="rounded-xl border border-white/10 bg-gem-slate/60 p-4">
@@ -72,6 +80,38 @@ export function DesignControls({
           onSizeChange={onBeadSizeChange}
           onShapeChange={onBeadShapeChange}
         />
+
+        {(onMeasureSize || onTryAr) && (
+          <div>
+            <p className="mb-2 text-xs text-gem-mist/50">Size confidence</p>
+            <div className="flex gap-2">
+              {onMeasureSize && (
+                <button
+                  type="button"
+                  onClick={onMeasureSize}
+                  className="flex-1 rounded-xl border border-gem-gold/40 py-2.5 text-sm text-gem-gold transition hover:bg-gem-gold/10"
+                >
+                  Measure fit
+                </button>
+              )}
+              {onTryAr && (
+                <button
+                  type="button"
+                  onClick={onTryAr}
+                  disabled={!cameraAvailable}
+                  className="flex-1 rounded-xl border border-white/15 py-2.5 text-sm text-gem-mist transition hover:border-gem-gold/40 hover:text-gem-gold disabled:opacity-40"
+                >
+                  {arPreviewUsed ? "Try AR again" : "Try AR"}
+                </button>
+              )}
+            </div>
+            {!cameraAvailable && onTryAr && (
+              <p className="mt-1.5 text-[10px] text-gem-mist/40">
+                Camera not available in this browser.
+              </p>
+            )}
+          </div>
+        )}
 
         <button
           type="button"

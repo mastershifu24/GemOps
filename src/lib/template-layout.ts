@@ -123,3 +123,31 @@ export function getPreviewCenterLabel(template: DesignTemplate): string {
   const product = PRODUCT_LABELS[getProductType(template)];
   return `Your ${product}`;
 }
+
+/** Bracelet-first display order; strands stay visible beside wrist types */
+const CUSTOMIZER_TEMPLATE_ORDER: Record<string, number> = {
+  "bracelet-16": 0,
+  "classic-24": 1,
+  "double-48": 2,
+  "anklet-14": 3,
+  "necklace-18": 4,
+  "dog-collar-16": 5,
+};
+
+export function sortCustomizerTemplates(
+  templates: DesignTemplate[]
+): DesignTemplate[] {
+  return [...templates].sort((a, b) => {
+    const left = CUSTOMIZER_TEMPLATE_ORDER[a.slug] ?? 99;
+    const right = CUSTOMIZER_TEMPLATE_ORDER[b.slug] ?? 99;
+    if (left !== right) return left - right;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+export function getDefaultCustomizerTemplate(
+  templates: DesignTemplate[]
+): DesignTemplate {
+  const sorted = sortCustomizerTemplates(templates);
+  return sorted.find((t) => t.slug === "bracelet-16") ?? sorted[0];
+}
