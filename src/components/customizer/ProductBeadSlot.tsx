@@ -31,9 +31,7 @@ export function ProductBeadSlot({
   onSlotTap,
 }: ProductBeadSlotProps) {
   const filled = slot !== null;
-  const tappable =
-    onSlotTap &&
-    (!sequentialOnly || filled || index === activeSlotIndex);
+  const tappable = Boolean(onSlotTap);
 
   const dims = filled
     ? beadDimensionsPx(
@@ -47,12 +45,14 @@ export function ProductBeadSlot({
     <button
       type="button"
       disabled={!tappable}
-      onClick={() => tappable && onSlotTap(index)}
+      onClick={() => onSlotTap?.(index)}
       className={`absolute z-20 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center transition-all duration-300 ${
         isActive && !filled
           ? "rounded-full ring-2 ring-gem-gold ring-offset-2 ring-offset-gem-ink animate-pulse"
-          : ""
-      } ${tappable ? "cursor-pointer hover:scale-110" : ""}`}
+          : filled
+            ? "cursor-pointer hover:scale-110 hover:ring-2 hover:ring-white/30 hover:ring-offset-2 hover:ring-offset-gem-ink"
+            : ""
+      } ${tappable && !filled ? "cursor-pointer hover:scale-110" : ""}`}
       style={{ left: `${x}%`, top: `${y}%` }}
       aria-label={
         filled

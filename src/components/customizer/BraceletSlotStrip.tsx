@@ -73,11 +73,13 @@ export function BraceletSlotStrip({
               type="button"
               onClick={() => onSlotTap?.(index)}
               className={`relative z-10 flex shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
-                isActive
+                isActive && !filled
                   ? `ring-2 ring-gem-gold ring-offset-2 ${
                       isOverlay ? "ring-offset-transparent" : "ring-offset-gem-ink"
                     }`
-                  : ""
+                  : filled
+                    ? "cursor-pointer hover:ring-2 hover:ring-white/30 hover:ring-offset-2 hover:ring-offset-gem-ink"
+                    : ""
               } ${
                 filled
                   ? size

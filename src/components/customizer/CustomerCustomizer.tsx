@@ -165,6 +165,36 @@ export function CustomerCustomizer() {
     [components]
   );
 
+  const clearSlot = useCallback(
+    (index: number, options?: { mirror?: boolean }) => {
+      const shouldMirror =
+        options?.mirror !== false &&
+        strandCount === 2 &&
+        supportsStrandToggle(activeTemplate);
+
+      setSlots((prev) => {
+        if (index < 0 || index >= prev.length || prev[index] === null) {
+          return prev;
+        }
+        const next = [...prev];
+        next[index] = null;
+
+        if (shouldMirror) {
+          const pair =
+            index < perRingSlotCount
+              ? index + perRingSlotCount
+              : index - perRingSlotCount;
+          if (pair >= 0 && pair < next.length) {
+            next[pair] = null;
+          }
+        }
+
+        return next;
+      });
+    },
+    [strandCount, activeTemplate, perRingSlotCount]
+  );
+
   const placeComponent = useCallback(
     (index: number, component: Component, options?: { mirror?: boolean }) => {
       const shouldMirror =
@@ -210,15 +240,6 @@ export function CustomerCustomizer() {
     [placeComponent]
   );
 
-  const fillNextEmpty = useCallback(
-    (component: Component) => {
-      const index = findNextEmptySlotIndex(slots);
-      if (index === null) return;
-      assignToSlot(index, component);
-    },
-    [slots, assignToSlot]
-  );
-
   const handleStoneSelect = useCallback(
     (component: Component) => {
       setError(null);
@@ -246,10 +267,14 @@ export function CustomerCustomizer() {
         return;
       }
 
+      if (selectedStone?.id === component.id) {
+        setSelectedStone(null);
+        return;
+      }
+
       setSelectedStone(component);
-      fillNextEmpty(component);
     },
-    [patternDraft, fillNextEmpty, selectedBeadMm, selectedBeadShape]
+    [patternDraft, selectedBeadMm, selectedBeadShape, selectedStone]
   );
 
   const resetDesign = useCallback(
@@ -375,17 +400,30 @@ export function CustomerCustomizer() {
 
   const handleSlotTap = useCallback(
     (index: number, options?: { mirror?: boolean }) => {
-      if (!selectedStone) return;
-      if (
-        sequentialOnly &&
-        slots[index] === null &&
-        index !== nextEmptyIndex
-      ) {
+      if (selectedStone) {
+        if (
+          sequentialOnly &&
+          slots[index] === null &&
+          index !== nextEmptyIndex
+        ) {
+          return;
+        }
+        placeComponent(index, selectedStone, options);
         return;
       }
-      placeComponent(index, selectedStone, options);
+
+      if (slots[index] !== null) {
+        clearSlot(index, options);
+      }
     },
-    [selectedStone, slots, placeComponent, sequentialOnly, nextEmptyIndex]
+    [
+      selectedStone,
+      slots,
+      placeComponent,
+      clearSlot,
+      sequentialOnly,
+      nextEmptyIndex,
+    ]
   );
 
   const handleStripSlotTap = useCallback(
@@ -599,8 +637,8 @@ export function CustomerCustomizer() {
           </p>
           <p className="mb-3 text-xs text-gem-mist/50">
             {showStrandToggle
-              ? "Pick a stone, then tap the strand strip or the 3D ring — both stay in sync."
-              : "Pick size and shape above, then tap a stone — the 3D preview updates instantly. Mix colors and sizes on the same piece."}
+              ? "Select a stone and tap the strand or ring to place. Tap a filled bead to replace it, or tap without a stone selected to remove."
+              : "Pick size and shape above, then tap a stone — tap the preview to place or replace."}
           </p>
           <StonePalette
             components={components}
