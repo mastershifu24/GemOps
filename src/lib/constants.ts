@@ -190,6 +190,13 @@ export const SPLINE_SCENE_URL =
   process.env.NEXT_PUBLIC_SPLINE_SCENE_URL ??
   "https://prod.spline.design/vCEn64MbFJ38qnjV/scene.splinecode";
 
+/** Phase 2: scene with bead_00…bead_47 named spheres + thread (scene.splinecode export) */
+export function getSplineStrandSceneUrl(): string | null {
+  const url = process.env.NEXT_PUBLIC_SPLINE_STRAND_SCENE_URL?.trim();
+  if (url && url.includes("scene.splinecode")) return url;
+  return null;
+}
+
 /** iframe fallback if react-spline fails to load (WebGL, network, etc.) */
 export const SPLINE_FALLBACK_EMBED_URL =
   process.env.NEXT_PUBLIC_SPLINE_FALLBACK_EMBED_URL ??
