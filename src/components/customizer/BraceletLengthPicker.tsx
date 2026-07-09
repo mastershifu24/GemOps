@@ -7,6 +7,7 @@ interface BraceletLengthPickerProps {
   options: BraceletLengthOption[];
   selectedSlotCount: number;
   onChange: (option: BraceletLengthOption) => void;
+  label?: string;
   disabled?: boolean;
 }
 
@@ -39,12 +40,13 @@ export function BraceletLengthPicker({
   options,
   selectedSlotCount,
   onChange,
+  label = "Size",
   disabled = false,
 }: BraceletLengthPickerProps) {
   return (
     <div>
       <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-        Wrist Length
+        {label}
       </p>
       <p className="mt-1 text-xs text-gem-mist/50">
         Pick the size that fits — the ring adjusts to match.

@@ -1,11 +1,23 @@
-import type {
-  BraceletLengthOption,
-  DesignTemplate,
-} from "@/types/database";
+import type { DesignTemplate, ProductType } from "@/types/database";
+import type { BraceletLengthOption } from "@/types/database";
 
 export type TemplateLayout = DesignTemplate["configuration_rules"]["layout"];
 
-/** Standard wrist sizes → bead counts (~8 mm beads on elastic) */
+export const PRODUCT_LABELS: Record<ProductType, string> = {
+  bracelet: "Bracelet",
+  necklace: "Necklace",
+  dog_collar: "Dog Collar",
+  strand: "Strand",
+};
+
+export const SIZE_PICKER_LABELS: Record<ProductType, string> = {
+  bracelet: "Wrist Length",
+  necklace: "Necklace Length",
+  dog_collar: "Collar Size",
+  strand: "Strand Length",
+};
+
+/** Wrist circumference → bead count (~8 mm beads) */
 export const WRIST_LENGTH_OPTIONS: BraceletLengthOption[] = [
   { label: '5.5"', slot_count: 10, description: "Petite" },
   { label: '6"', slot_count: 12, description: "XS" },
@@ -17,12 +29,45 @@ export const WRIST_LENGTH_OPTIONS: BraceletLengthOption[] = [
   { label: '9"', slot_count: 24, description: "Wide" },
 ];
 
+/** Necklace chain length → bead count */
+export const NECKLACE_LENGTH_OPTIONS: BraceletLengthOption[] = [
+  { label: '14"', slot_count: 14, description: "Choker" },
+  { label: '16"', slot_count: 16, description: "Short" },
+  { label: '18"', slot_count: 18, description: "Princess", default: true },
+  { label: '20"', slot_count: 20, description: "Matinee" },
+  { label: '22"', slot_count: 22, description: "Opera" },
+  { label: '24"', slot_count: 24, description: "Rope" },
+];
+
+/** Dog neck circumference → bead count */
+export const DOG_COLLAR_LENGTH_OPTIONS: BraceletLengthOption[] = [
+  { label: '10"', slot_count: 12, description: "XS" },
+  { label: '12"', slot_count: 14, description: "Small" },
+  { label: '14"', slot_count: 16, description: "Medium", default: true },
+  { label: '16"', slot_count: 18, description: "Large" },
+  { label: '18"', slot_count: 20, description: "XL" },
+  { label: '20"', slot_count: 22, description: "XXL" },
+];
+
+export function getProductType(template: DesignTemplate): ProductType {
+  return template.configuration_rules?.product_type ?? "strand";
+}
+
 export function getTemplateLayout(template: DesignTemplate): TemplateLayout {
   return template.configuration_rules?.layout ?? "linear";
 }
 
 export function isRadialTemplate(template: DesignTemplate): boolean {
   return getTemplateLayout(template) === "radial";
+}
+
+export function isArcTemplate(template: DesignTemplate): boolean {
+  return getTemplateLayout(template) === "arc";
+}
+
+export function usesProductPreview(template: DesignTemplate): boolean {
+  const layout = getTemplateLayout(template);
+  return layout === "radial" || layout === "arc" || layout === "linear";
 }
 
 export function isSequentialFill(template: DesignTemplate): boolean {
@@ -57,4 +102,13 @@ export function resolveSlotCount(
 export function formatLengthLabel(option: BraceletLengthOption): string {
   const detail = option.description ? ` · ${option.description}` : "";
   return `${option.label}${detail} (${option.slot_count} beads)`;
+}
+
+export function getSizePickerLabel(template: DesignTemplate): string {
+  return SIZE_PICKER_LABELS[getProductType(template)];
+}
+
+export function getPreviewCenterLabel(template: DesignTemplate): string {
+  const product = PRODUCT_LABELS[getProductType(template)];
+  return `Your ${product}`;
 }

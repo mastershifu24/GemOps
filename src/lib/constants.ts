@@ -1,5 +1,9 @@
 import type { Component, DesignTemplate, SlotAssignment } from "@/types/database";
-import { WRIST_LENGTH_OPTIONS } from "@/lib/template-layout";
+import {
+  DOG_COLLAR_LENGTH_OPTIONS,
+  NECKLACE_LENGTH_OPTIONS,
+  WRIST_LENGTH_OPTIONS,
+} from "@/lib/template-layout";
 
 /** MVP seed data — used when Supabase is not configured yet */
 export const SEED_COMPONENTS: Component[] = [
@@ -86,15 +90,50 @@ export const SEED_COMPONENTS: Component[] = [
 export const SEED_TEMPLATES: DesignTemplate[] = [
   {
     id: "seed-bracelet-16",
-    name: "Wrist Bracelet",
+    name: "Bracelet",
     slug: "bracelet-16",
-    description: "Circular wrist bracelet, 16 bead slots",
+    description: "Circular wrist bracelet",
     slot_count: 16,
     configuration_rules: {
       layout: "radial",
+      product_type: "bracelet",
       fill_mode: "sequential",
       assembly_direction: "left_to_right",
       length_options: WRIST_LENGTH_OPTIONS,
+      slots: [],
+    },
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "seed-necklace-18",
+    name: "Necklace",
+    slug: "necklace-18",
+    description: "Beaded necklace on an arc",
+    slot_count: 18,
+    configuration_rules: {
+      layout: "arc",
+      product_type: "necklace",
+      fill_mode: "sequential",
+      assembly_direction: "left_to_right",
+      length_options: NECKLACE_LENGTH_OPTIONS,
+      slots: [],
+    },
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "seed-dog-collar-16",
+    name: "Dog Collar",
+    slug: "dog-collar-16",
+    description: "Beaded dog collar band",
+    slot_count: 16,
+    configuration_rules: {
+      layout: "radial",
+      product_type: "dog_collar",
+      fill_mode: "sequential",
+      assembly_direction: "left_to_right",
+      length_options: DOG_COLLAR_LENGTH_OPTIONS,
       slots: [],
     },
     is_active: true,
@@ -108,6 +147,7 @@ export const SEED_TEMPLATES: DesignTemplate[] = [
     slot_count: 24,
     configuration_rules: {
       layout: "linear",
+      product_type: "strand",
       assembly_direction: "left_to_right",
       slots: [],
     },
@@ -122,6 +162,7 @@ export const SEED_TEMPLATES: DesignTemplate[] = [
     slot_count: 48,
     configuration_rules: {
       layout: "linear",
+      product_type: "strand",
       assembly_direction: "left_to_right",
       slots: [],
     },

@@ -240,12 +240,13 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
 INSERT INTO public.design_templates (name, slug, description, slot_count, configuration_rules)
 VALUES
   (
-    'Wrist Bracelet',
+    'Bracelet',
     'bracelet-16',
-    'Circular wrist bracelet with adjustable length',
+    'Circular wrist bracelet',
     16,
     '{
       "layout": "radial",
+      "product_type": "bracelet",
       "fill_mode": "sequential",
       "assembly_direction": "left_to_right",
       "length_options": [
@@ -262,12 +263,55 @@ VALUES
     }'::jsonb
   ),
   (
+    'Necklace',
+    'necklace-18',
+    'Beaded necklace on an arc',
+    18,
+    '{
+      "layout": "arc",
+      "product_type": "necklace",
+      "fill_mode": "sequential",
+      "assembly_direction": "left_to_right",
+      "length_options": [
+        { "label": "14\"", "slot_count": 14, "description": "Choker" },
+        { "label": "16\"", "slot_count": 16, "description": "Short" },
+        { "label": "18\"", "slot_count": 18, "description": "Princess", "default": true },
+        { "label": "20\"", "slot_count": 20, "description": "Matinee" },
+        { "label": "22\"", "slot_count": 22, "description": "Opera" },
+        { "label": "24\"", "slot_count": 24, "description": "Rope" }
+      ],
+      "slots": []
+    }'::jsonb
+  ),
+  (
+    'Dog Collar',
+    'dog-collar-16',
+    'Beaded dog collar band',
+    16,
+    '{
+      "layout": "radial",
+      "product_type": "dog_collar",
+      "fill_mode": "sequential",
+      "assembly_direction": "left_to_right",
+      "length_options": [
+        { "label": "10\"", "slot_count": 12, "description": "XS" },
+        { "label": "12\"", "slot_count": 14, "description": "Small" },
+        { "label": "14\"", "slot_count": 16, "description": "Medium", "default": true },
+        { "label": "16\"", "slot_count": 18, "description": "Large" },
+        { "label": "18\"", "slot_count": 20, "description": "XL" },
+        { "label": "20\"", "slot_count": 22, "description": "XXL" }
+      ],
+      "slots": []
+    }'::jsonb
+  ),
+  (
     'Classic Strand',
     'classic-24',
     'Single-strand bracelet, 24 bead slots',
     24,
     '{
       "layout": "linear",
+      "product_type": "strand",
       "assembly_direction": "left_to_right",
       "slots": []
     }'::jsonb
@@ -279,6 +323,7 @@ VALUES
     48,
     '{
       "layout": "linear",
+      "product_type": "strand",
       "assembly_direction": "left_to_right",
       "slots": []
     }'::jsonb

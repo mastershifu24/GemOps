@@ -10,6 +10,11 @@ import {
   SEED_TEMPLATES,
 } from "@/lib/constants";
 import { formatCurrency } from "@/lib/pricing";
+import {
+  getPreviewCenterLabel,
+  getProductType,
+  getTemplateLayout,
+} from "@/lib/template-layout";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { DesignTemplate, Order, SlotState } from "@/types/database";
 
@@ -38,6 +43,7 @@ export function DemoWalkthrough() {
   const [error, setError] = useState<string | null>(null);
 
   const sampleLayout = buildSampleLayout(undefined, slotCount);
+  const demoTemplate = SEED_TEMPLATES.find((t) => t.slug === "classic-24") ?? SEED_TEMPLATES[0];
   const previewSlots: SlotState[] =
     phase === "idle" ? sampleLayout : (activeOrder?.slot_layout ?? sampleLayout);
   const currentStep = phaseIndex(phase);
@@ -198,6 +204,9 @@ export function DemoWalkthrough() {
                 ? slotCount
                 : activeOrder?.filled_slot_count ?? slotCount,
             totalSlots: slotCount,
+            layout: getTemplateLayout(demoTemplate),
+            productType: getProductType(demoTemplate),
+            previewLabel: getPreviewCenterLabel(demoTemplate),
           }}
         />
       </header>

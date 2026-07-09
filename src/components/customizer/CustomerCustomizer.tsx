@@ -17,8 +17,10 @@ import {
   formatLengthLabel,
   getDefaultLengthOption,
   getLengthOptions,
+  getPreviewCenterLabel,
+  getProductType,
+  getSizePickerLabel,
   getTemplateLayout,
-  isRadialTemplate,
   isSequentialFill,
   resolveSlotCount,
 } from "@/lib/template-layout";
@@ -111,13 +113,14 @@ export function CustomerCustomizer() {
   const nextEmptyIndex = useMemo(() => findNextEmptySlotIndex(slots), [slots]);
   const patternMode = patternDraft !== null && patternDraft.stoneB === null;
   const templateLayout = getTemplateLayout(activeTemplate);
+  const productType = getProductType(activeTemplate);
   const sequentialOnly = isSequentialFill(activeTemplate);
-  const showBulkActions = !isRadialTemplate(activeTemplate);
+  const showBulkActions = !sequentialOnly;
 
   const assignToSlot = useCallback(
     (index: number, component: Component) => {
       setSlots((prev) => {
-        if (index < 0 || index >= prev.length || prev[index] !== null) {
+        if (index < 0 || index >= prev.length) {
           return prev;
         }
         const next = [...prev];
@@ -225,8 +228,14 @@ export function CustomerCustomizer() {
 
   const handleSlotTap = useCallback(
     (index: number) => {
-      if (!selectedStone || slots[index] !== null) return;
-      if (sequentialOnly && index !== nextEmptyIndex) return;
+      if (!selectedStone) return;
+      if (
+        sequentialOnly &&
+        slots[index] === null &&
+        index !== nextEmptyIndex
+      ) {
+        return;
+      }
       assignToSlot(index, selectedStone);
     },
     [selectedStone, slots, assignToSlot, sequentialOnly, nextEmptyIndex]
@@ -319,6 +328,8 @@ export function CustomerCustomizer() {
             filledCount,
             totalSlots: activeSlotCount,
             layout: templateLayout,
+            productType,
+            previewLabel: getPreviewCenterLabel(activeTemplate),
             sequentialOnly,
             onSlotTap: handleSlotTap,
           }}
@@ -346,6 +357,7 @@ export function CustomerCustomizer() {
             options={lengthOptions}
             selectedSlotCount={activeSlotCount}
             onChange={handleLengthChange}
+            label={getSizePickerLabel(activeTemplate)}
           />
         )}
 
