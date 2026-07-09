@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Order } from "@/types/database";
 
@@ -110,6 +111,9 @@ export function PosDashboard() {
             <p className="text-2xl font-semibold text-gem-mist">
               {pendingOrders.length}
             </p>
+            <div className="mt-2">
+              <StaffSignOutButton />
+            </div>
           </div>
         </div>
       </header>

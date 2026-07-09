@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Component, ComponentType, Order } from "@/types/database";
 
@@ -233,6 +234,7 @@ export function AdminDashboard() {
               Components ({components.length})
             </button>
           </div>
+          <StaffSignOutButton />
         </div>
       </header>
 
