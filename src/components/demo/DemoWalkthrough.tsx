@@ -3,14 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
+import { AssemblyScriptCard } from "@/components/studio/AssemblyScriptCard";
 import {
   buildAssemblyScript,
   buildSampleLayout,
   generateOrderCode,
   SEED_TEMPLATES,
 } from "@/lib/constants";
+import { STORE_NAME, STORE_TAGLINE } from "@/lib/branding";
 import { formatCurrency } from "@/lib/pricing";
 import {
+  getDefaultCustomizerTemplate,
   getPreviewCenterLabel,
   getProductType,
   getTemplateLayout,
@@ -33,17 +36,20 @@ function phaseIndex(phase: DemoPhase): number {
   return 0;
 }
 
+const DEMO_TEMPLATE =
+  SEED_TEMPLATES.find((t) => t.slug === "bracelet-16") ??
+  getDefaultCustomizerTemplate(SEED_TEMPLATES);
+
 export function DemoWalkthrough() {
-  const [templateId, setTemplateId] = useState(SEED_TEMPLATES[0].id);
-  const [templateName, setTemplateName] = useState(SEED_TEMPLATES[0].name);
-  const [slotCount, setSlotCount] = useState(24);
+  const [templateId, setTemplateId] = useState(DEMO_TEMPLATE.id);
+  const [slotCount, setSlotCount] = useState(DEMO_TEMPLATE.slot_count);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [phase, setPhase] = useState<DemoPhase>("idle");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sampleLayout = buildSampleLayout(undefined, slotCount);
-  const demoTemplate = SEED_TEMPLATES.find((t) => t.slug === "classic-24") ?? SEED_TEMPLATES[0];
+  const demoTemplate = DEMO_TEMPLATE;
   const previewSlots: SlotState[] =
     phase === "idle" ? sampleLayout : (activeOrder?.slot_layout ?? sampleLayout);
   const currentStep = phaseIndex(phase);
@@ -57,13 +63,12 @@ export function DemoWalkthrough() {
     const { data } = await supabase
       .from("design_templates")
       .select("id, name, slot_count")
-      .eq("slug", "classic-24")
+      .eq("slug", "bracelet-16")
       .single();
 
     if (data) {
       const template = data as DesignTemplate;
       setTemplateId(template.id);
-      setTemplateName(template.name);
       setSlotCount(template.slot_count);
     }
   }, []);
@@ -215,10 +220,10 @@ export function DemoWalkthrough() {
       <main className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-5">
         <div className="text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
-            GemOps
+            {STORE_NAME}
           </p>
           <h1 className="mt-2 font-display text-3xl text-gem-mist sm:text-4xl">
-            Phygital Studio
+            {STORE_TAGLINE}
           </h1>
           <p className="mt-2 text-sm text-gem-mist/50">
             Full store flow · one screen · no second device
@@ -341,44 +346,35 @@ export function DemoWalkthrough() {
 
         {(phase === "paid" || phase === "done") && activeOrder && (
           <section className="flex flex-1 flex-col gap-4">
-            <div className="rounded-xl border border-white/10 bg-gem-slate p-6">
+            <div className="rounded-xl border border-gem-gold/30 bg-gem-gold/5 p-5">
               <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-                Step 3 · 60-Second Assembly Script
+                Step 3 · Studio
               </p>
-              <p className="mt-1 font-display text-2xl text-gem-gold">
-                #{activeOrder.order_code}
+              <p className="mt-2 text-sm text-gem-mist/60">
+                Assembly recipe for the bench
               </p>
+            </div>
 
-              <div className="mt-5 rounded-lg bg-gem-ink p-5 ring-1 ring-gem-gold/20">
-                <p className="font-mono text-base leading-relaxed text-gem-mist sm:text-lg">
-                  {activeOrder.assembly_script}
+            <AssemblyScriptCard
+              order={activeOrder}
+              processing={loading}
+              onMarkComplete={phase === "paid" ? handleComplete : undefined}
+            />
+
+            {phase === "done" && (
+              <div className="text-center">
+                <p className="font-display text-lg text-gem-gold">
+                  Strand complete ✦
                 </p>
-              </div>
-
-              {phase === "paid" ? (
                 <button
                   type="button"
-                  disabled={loading}
-                  onClick={handleComplete}
-                  className="mt-5 w-full rounded-xl border border-white/15 py-3 text-sm font-medium text-gem-mist transition hover:border-white/30 disabled:opacity-50"
+                  onClick={handleReset}
+                  className="mt-4 text-sm text-gem-mist/50 underline underline-offset-4 hover:text-gem-mist"
                 >
-                  Mark Assembly Complete
+                  Run demo again
                 </button>
-              ) : (
-                <div className="mt-5 text-center">
-                  <p className="font-display text-lg text-gem-gold">
-                    Strand complete ✦
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="mt-4 text-sm text-gem-mist/50 underline underline-offset-4 hover:text-gem-mist"
-                  >
-                    Run demo again
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         )}
 

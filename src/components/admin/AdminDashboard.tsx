@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
+import { AssemblyScriptCard } from "@/components/studio/AssemblyScriptCard";
+import { STORE_NAME } from "@/lib/branding";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { formatCurrency, PAYMENT_METHOD_LABELS } from "@/lib/pricing";
+import { formatCurrency } from "@/lib/pricing";
 import type { Component, ComponentType, Order } from "@/types/database";
 
 const COMPONENT_TYPES: ComponentType[] = [
@@ -40,6 +42,7 @@ export function AdminDashboard() {
   const [newType, setNewType] = useState<ComponentType>("bead");
   const [newColor, setNewColor] = useState("#9ca3af");
   const [newSku, setNewSku] = useState("");
+  const [newPriceDollars, setNewPriceDollars] = useState("3");
 
   const studioOrders = orders.filter((o) => o.status === "in_studio");
   const selectedOrder =
@@ -150,6 +153,9 @@ export function AdminDashboard() {
           component_type: newType,
           display_color: newColor,
           sku: newSku.trim() || undefined,
+          unit_cost_cents: Math.round(
+            Number.parseFloat(newPriceDollars || "0") * 100
+          ),
         }),
       });
 
@@ -160,6 +166,7 @@ export function AdminDashboard() {
 
       setNewName("");
       setNewSku("");
+      setNewPriceDollars("3");
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add component");
@@ -204,7 +211,7 @@ export function AdminDashboard() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
-              GemOps Admin
+              {STORE_NAME} Admin
             </p>
             <h1 className="mt-1 font-display text-2xl text-gem-mist">
               Logistics Command Center
@@ -309,41 +316,11 @@ export function AdminDashboard() {
               </h2>
 
               {selectedOrder ? (
-                <div className="rounded-xl border border-white/10 bg-gem-slate p-6">
-                  <p className="font-display text-3xl text-gem-gold">
-                    #{selectedOrder.order_code}
-                  </p>
-                  <p className="mt-2 text-sm text-gem-mist/50">
-                    {selectedOrder.filled_slot_count} /{" "}
-                    {selectedOrder.total_slot_count} slots filled ·{" "}
-                    {formatCurrency(selectedOrder.total_cents ?? 0)}
-                    {selectedOrder.payment_method && (
-                      <>
-                        {" "}
-                        · paid via{" "}
-                        {PAYMENT_METHOD_LABELS[selectedOrder.payment_method]}
-                      </>
-                    )}
-                  </p>
-
-                  <div className="mt-6 rounded-lg bg-gem-ink p-5">
-                    <p className="font-mono text-lg leading-relaxed text-gem-mist sm:text-xl">
-                      {selectedOrder.assembly_script ??
-                        "No assembly script generated"}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={processingId === selectedOrder.id}
-                    onClick={() => handleMarkCompleted(selectedOrder)}
-                    className="mt-6 w-full rounded-xl border border-white/15 py-3 text-sm font-medium text-gem-mist transition hover:border-white/30 disabled:opacity-50"
-                  >
-                    {processingId === selectedOrder.id
-                      ? "Marking complete…"
-                      : "Mark Assembly Complete"}
-                  </button>
-                </div>
+                <AssemblyScriptCard
+                  order={selectedOrder}
+                  processing={processingId === selectedOrder.id}
+                  onMarkComplete={() => handleMarkCompleted(selectedOrder)}
+                />
               ) : (
                 <div className="rounded-xl border border-dashed border-white/15 py-12 text-center text-gem-mist/40">
                   Select an order to view its bench recipe
@@ -411,6 +388,21 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="text-xs text-gem-mist/50">
+                    Price (USD per unit)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={newPriceDollars}
+                    onChange={(e) => setNewPriceDollars(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-gem-ink px-3 py-2 text-gem-mist"
+                    placeholder="3.00"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   className="w-full rounded-xl bg-gem-gold py-3 text-sm font-semibold text-gem-ink"
@@ -440,6 +432,7 @@ export function AdminDashboard() {
                       <p className="text-xs text-gem-mist/40">
                         {component.component_type}
                         {component.sku ? ` · ${component.sku}` : ""}
+                        {` · ${formatCurrency(component.unit_cost_cents)}`}
                         {!component.is_active ? " · inactive" : ""}
                       </p>
                     </div>

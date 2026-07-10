@@ -371,11 +371,19 @@ export function CustomerCustomizer() {
 
   const handleClaspSelect = useCallback(
     (clasp: Component) => {
+      const claspSlot = slots[0];
+      if (claspSlot && claspSlot.component_type !== "clasp") {
+        setError(
+          "Slot 1 already has a bead. Tap that bead to remove it, then choose a clasp."
+        );
+        return;
+      }
+
       setSelectedClaspId(clasp.id);
       placeComponent(0, clasp);
       setError(null);
     },
-    [placeComponent]
+    [placeComponent, slots]
   );
 
   const handlePatternAlternator = useCallback(() => {

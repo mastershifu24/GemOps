@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
-import { STORE_NAME } from "@/lib/branding";
+import { STORE_NAME, STORE_TAGLINE } from "@/lib/branding";
 import "./globals.css";
 
 const sans = DM_Sans({
@@ -15,7 +15,7 @@ const display = Playfair_Display({
 
 export const metadata: Metadata = {
   title: STORE_NAME,
-  description: "Phygital jewelry customization platform",
+  description: STORE_TAGLINE,
 };
 
 export const viewport: Viewport = {

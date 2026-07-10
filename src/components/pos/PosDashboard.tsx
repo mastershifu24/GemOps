@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
+import { STORE_NAME } from "@/lib/branding";
+import { formatSizingSummary, orderMatchesSearch } from "@/lib/format-order";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { formatCurrency, type PaymentMethod } from "@/lib/pricing";
 import type { Order } from "@/types/database";
@@ -25,8 +27,12 @@ export function PosDashboard() {
   const [paymentMethods, setPaymentMethods] = useState<
     Record<string, PaymentMethod>
   >({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const pendingOrders = orders.filter((o) => o.status === "pending_payment");
+  const visibleOrders = pendingOrders.filter((o) =>
+    orderMatchesSearch(o, searchQuery)
+  );
 
   const getPaymentMethod = (orderId: string): PaymentMethod =>
     paymentMethods[orderId] ?? "card";
@@ -117,7 +123,7 @@ export function PosDashboard() {
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
-              GemOps POS
+              {STORE_NAME} POS
             </p>
             <h1 className="mt-1 font-display text-2xl text-gem-mist">
               Order Queue
@@ -174,8 +180,26 @@ export function PosDashboard() {
             </p>
           </div>
         ) : (
+          <>
+            <div className="mb-6">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by order code…"
+                className="w-full rounded-xl border border-white/10 bg-gem-slate px-4 py-3 text-sm text-gem-mist placeholder:text-gem-mist/40"
+              />
+            </div>
+
+            {visibleOrders.length === 0 ? (
+              <p className="text-center text-sm text-gem-mist/50">
+                No orders match &ldquo;{searchQuery}&rdquo;
+              </p>
+            ) : (
           <ul className="space-y-4">
-            {pendingOrders.map((order) => (
+            {visibleOrders.map((order) => {
+              const sizingLine = formatSizingSummary(order.sizing_metadata);
+              return (
               <li
                 key={order.id}
                 className="flex flex-col gap-4 rounded-xl border border-white/10 bg-gem-slate p-5 sm:flex-row sm:items-center sm:justify-between"
@@ -191,10 +215,8 @@ export function PosDashboard() {
                     {order.filled_slot_count} / {order.total_slot_count} beads ·{" "}
                     {formatTime(order.created_at)}
                   </p>
-                  {order.assembly_script && (
-                    <p className="mt-2 font-mono text-xs text-gem-mist/40">
-                      {order.assembly_script}
-                    </p>
+                  {sizingLine && (
+                    <p className="mt-1 text-sm text-gem-gold/80">{sizingLine}</p>
                   )}
                 </div>
 
@@ -238,8 +260,11 @@ export function PosDashboard() {
                   </p>
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
+            )}
+          </>
         )}
       </main>
     </div>

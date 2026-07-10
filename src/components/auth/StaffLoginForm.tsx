@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { STORE_NAME } from "@/lib/branding";
 
 export function StaffLoginForm() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export function StaffLoginForm() {
       <div className="w-full max-w-sm">
         <div className="text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-gem-gold">
-            GemOps Staff
+            {STORE_NAME} Staff
           </p>
           <h1 className="mt-2 font-display text-3xl text-gem-mist">Sign in</h1>
           <p className="mt-2 text-sm text-gem-mist/50">
