@@ -159,7 +159,7 @@ export function CustomerCustomizer() {
   const productType = getProductType(activeTemplate);
   const sequentialOnly = isSequentialFill(activeTemplate);
   const showStrandToggle = supportsStrandToggle(activeTemplate);
-  const showBulkActions = !sequentialOnly;
+  const showPatternAlternator = !sequentialOnly;
   const claspComponents = useMemo(
     () => components.filter((c) => c.component_type === "clasp"),
     [components]
@@ -396,19 +396,33 @@ export function CustomerCustomizer() {
       setError("Select a stone to fill remaining slots.");
       return;
     }
-    setSlots((prev) =>
-      prev.map((slot, index) =>
+    setSlots((prev) => {
+      const filled = prev.map((slot, index) =>
         slot === null
           ? toSlotAssignment(selectedStone, index, {
               beadSizeMm: selectedBeadMm,
               beadShape: selectedBeadShape,
             })
           : slot
-      )
-    );
+      );
+
+      if (strandCount === 2 && supportsStrandToggle(activeTemplate)) {
+        const inner = filled.slice(0, perRingSlotCount);
+        return mirrorSlotsToDoubleStrand(inner, perRingSlotCount);
+      }
+
+      return filled;
+    });
     setPatternDraft(null);
     setError(null);
-  }, [selectedStone, selectedBeadMm, selectedBeadShape]);
+  }, [
+    selectedStone,
+    selectedBeadMm,
+    selectedBeadShape,
+    strandCount,
+    activeTemplate,
+    perRingSlotCount,
+  ]);
 
   const handleSlotTap = useCallback(
     (index: number, options?: { mirror?: boolean }) => {
@@ -660,22 +674,26 @@ export function CustomerCustomizer() {
         </section>
 
         <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">
-          <ClaspPicker
-            clasps={claspComponents}
-            selectedId={selectedClaspId}
-            onSelect={handleClaspSelect}
-          />
-        </section>
-
-        {showBulkActions && (
+          <p className="mb-2 text-xs uppercase tracking-[0.25em] text-gem-gold">
+            Quick fill
+          </p>
           <BulkActions
             patternMode={patternMode}
             onPatternAlternator={handlePatternAlternator}
             onFillRemaining={handleFillRemaining}
             hasSelection={selectedStone !== null}
             remainingCount={remainingCount}
+            showPatternAlternator={showPatternAlternator}
           />
-        )}
+        </section>
+
+        <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">
+          <ClaspPicker
+            clasps={claspComponents}
+            selectedId={selectedClaspId}
+            onSelect={handleClaspSelect}
+          />
+        </section>
 
         {error && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
