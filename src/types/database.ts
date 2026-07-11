@@ -128,9 +128,5 @@ export interface Order {
   completed_at: string | null;
 }
 
-export interface CreateOrderPayload {
-  design_template_id: string;
-  slot_layout: SlotAssignment[];
-  total_slot_count: number;
-  filled_slot_count: number;
-}
+/** Validated body for POST /api/orders — see validateCreateOrderBody */
+export type { ValidatedCreateOrderBody as CreateOrderPayload } from "@/lib/validate-order";

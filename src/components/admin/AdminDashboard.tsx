@@ -5,6 +5,7 @@ import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { AssemblyScriptCard } from "@/components/studio/AssemblyScriptCard";
 import { STORE_NAME } from "@/lib/branding";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { staffFetch } from "@/lib/staff-fetch";
 import { formatCurrency } from "@/lib/pricing";
 import type { Component, ComponentType, Order } from "@/types/database";
 
@@ -49,7 +50,7 @@ export function AdminDashboard() {
     studioOrders.find((o) => o.id === selectedOrderId) ?? studioOrders[0] ?? null;
 
   const fetchOrders = useCallback(async () => {
-    const res = await fetch("/api/orders");
+    const res = await staffFetch("/api/orders");
     if (!res.ok) throw new Error("Failed to load orders");
     const data = await res.json();
     setOrders(data.orders ?? []);
@@ -57,7 +58,7 @@ export function AdminDashboard() {
   }, []);
 
   const fetchComponents = useCallback(async () => {
-    const res = await fetch("/api/components");
+    const res = await staffFetch("/api/components");
     if (!res.ok) throw new Error("Failed to load components");
     const data = await res.json();
     setComponents(data.components ?? []);
@@ -119,7 +120,7 @@ export function AdminDashboard() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/orders/${order.id}`, {
+      const res = await staffFetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "completed" }),
@@ -145,7 +146,7 @@ export function AdminDashboard() {
 
     setError(null);
     try {
-      const res = await fetch("/api/components", {
+      const res = await staffFetch("/api/components", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,7 +177,7 @@ export function AdminDashboard() {
   const handleToggleActive = async (component: Component) => {
     setError(null);
     try {
-      const res = await fetch(`/api/components/${component.id}`, {
+      const res = await staffFetch(`/api/components/${component.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: !component.is_active }),
@@ -194,7 +195,7 @@ export function AdminDashboard() {
 
     setError(null);
     try {
-      const res = await fetch(`/api/components/${component.id}`, {
+      const res = await staffFetch(`/api/components/${component.id}`, {
         method: "DELETE",
       });
 

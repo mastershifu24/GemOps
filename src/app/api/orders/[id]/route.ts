@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { isDevMode, updateDevOrderStatus } from "@/lib/dev-orders";
+import { isDevMode, listDevOrders, updateDevOrderStatus } from "@/lib/dev-orders";
 import { assertOrderTransition } from "@/lib/order-transitions";
 import { requireStaffSession } from "@/lib/supabase/route-auth";
-import type { OrderStatus, PaymentMethod } from "@/types/database";
+import { validatePatchOrderBody } from "@/lib/validate-order";
+import type { OrderStatus } from "@/types/database";
 import type { Database } from "@/types/supabase";
 
 type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
@@ -12,29 +13,45 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await request.json();
-  const status = body.status as string | undefined;
-  const paymentMethod = body.payment_method as PaymentMethod | undefined;
-  const amountPaidCents = body.amount_paid_cents as number | undefined;
 
-  if (!status) {
-    return NextResponse.json({ error: "status required" }, { status: 400 });
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const nextStatus = status as OrderStatus;
-  const payment =
-    paymentMethod && amountPaidCents !== undefined
-      ? { payment_method: paymentMethod, amount_paid_cents: amountPaidCents }
-      : undefined;
+  const parsed = validatePatchOrderBody(raw);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { status: nextStatus, payment_method: paymentMethod } = parsed.data;
 
   if (isDevMode()) {
-    const result = updateDevOrderStatus(id, nextStatus, payment);
+    const current = listDevOrders().find((o) => o.id === id);
+    if (!current) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const result = updateDevOrderStatus(
+      id,
+      nextStatus,
+      nextStatus === "in_studio" && paymentMethod
+        ? {
+            payment_method: paymentMethod,
+            amount_paid_cents: current.total_cents,
+          }
+        : undefined
+    );
+
     if (!result) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
+
     return NextResponse.json({
       ...result.order,
       persisted: false,
@@ -75,15 +92,11 @@ export async function PATCH(
 
   if (nextStatus === "paid" || nextStatus === "in_studio") {
     updates.paid_at = new Date().toISOString();
+    updates.payment_method = paymentMethod ?? null;
+    updates.amount_paid_cents = existing.total_cents;
   }
   if (nextStatus === "completed") {
     updates.completed_at = new Date().toISOString();
-  }
-  if (paymentMethod) {
-    updates.payment_method = paymentMethod;
-  }
-  if (amountPaidCents !== undefined) {
-    updates.amount_paid_cents = amountPaidCents;
   }
 
   const { data, error } = await supabase

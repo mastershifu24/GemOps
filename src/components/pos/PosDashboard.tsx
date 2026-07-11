@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { StaffSignOutButton } from "@/components/auth/StaffSignOutButton";
 import { STORE_NAME } from "@/lib/branding";
 import { formatSizingSummary, orderMatchesSearch } from "@/lib/format-order";
+import { staffFetch } from "@/lib/staff-fetch";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { formatCurrency, type PaymentMethod } from "@/lib/pricing";
 import type { Order } from "@/types/database";
@@ -39,7 +40,7 @@ export function PosDashboard() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch("/api/orders");
+      const res = await staffFetch("/api/orders");
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
       setOrders(data.orders ?? []);
@@ -90,7 +91,7 @@ export function PosDashboard() {
     const amount = order.total_cents ?? 0;
 
     try {
-      const res = await fetch(`/api/orders/${order.id}`, {
+      const res = await staffFetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -130,7 +131,7 @@ export function PosDashboard() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/orders/${order.id}`, {
+      const res = await staffFetch(`/api/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "cancelled" }),

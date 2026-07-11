@@ -11,7 +11,8 @@ import {
   requireServiceClient,
   requireStaffSession,
 } from "@/lib/supabase/route-auth";
-import type { Order, OrderSizingMetadata, OrderStatus, SlotAssignment } from "@/types/database";
+import { validateCreateOrderBody } from "@/lib/validate-order";
+import type { Order, OrderStatus } from "@/types/database";
 import type { Database, Json } from "@/types/supabase";
 
 type CreateOrderRow = Pick<
@@ -31,26 +32,20 @@ function asCreateOrderRow(row: {
 
 type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
 
-interface CreateOrderBody {
-  order_code?: string;
-  design_template_id: string;
-  slot_layout: SlotAssignment[];
-  total_slot_count: number;
-  filled_slot_count: number;
-  assembly_script?: string;
-  sizing_metadata?: OrderSizingMetadata | null;
-}
-
 export async function POST(request: Request) {
-  const body = (await request.json()) as CreateOrderBody;
-
-  if (!body.design_template_id || !Array.isArray(body.slot_layout)) {
-    return NextResponse.json(
-      { error: "Invalid order payload" },
-      { status: 400 }
-    );
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const parsed = validateCreateOrderBody(raw);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const body = parsed.data;
   const orderCode = body.order_code ?? generateOrderCode();
   const assemblyScript =
     body.assembly_script ?? buildAssemblyScript(body.slot_layout);
