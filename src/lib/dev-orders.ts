@@ -1,3 +1,4 @@
+import { assertOrderTransition } from "@/lib/order-transitions";
 import type { Order, OrderStatus, PaymentMethod } from "@/types/database";
 
 interface DevOrderInput {
@@ -19,7 +20,22 @@ export function isDevMode(): boolean {
   return !url || !key || url.includes("your-project");
 }
 
-export function createDevOrder(input: DevOrderInput): Order {
+export function findDevOrderByCode(orderCode: string): Order | null {
+  for (const order of devOrders.values()) {
+    if (order.order_code === orderCode) return order;
+  }
+  return null;
+}
+
+export function createDevOrder(input: DevOrderInput): {
+  order: Order;
+  idempotent: boolean;
+} {
+  const existing = findDevOrderByCode(input.order_code);
+  if (existing) {
+    return { order: existing, idempotent: true };
+  }
+
   const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const now = new Date().toISOString();
 
@@ -43,7 +59,7 @@ export function createDevOrder(input: DevOrderInput): Order {
   };
 
   devOrders.set(id, order);
-  return order;
+  return { order, idempotent: false };
 }
 
 export function listDevOrders(): Order[] {
@@ -56,9 +72,18 @@ export function updateDevOrderStatus(
   id: string,
   status: OrderStatus,
   payment?: { payment_method: PaymentMethod; amount_paid_cents: number }
-): Order | null {
+): { order: Order; noop: boolean } | { error: string } | null {
   const order = devOrders.get(id);
   if (!order) return null;
+
+  const transition = assertOrderTransition(order.status, status);
+  if (!transition.ok) {
+    return { error: transition.error };
+  }
+
+  if (transition.noop) {
+    return { order, noop: true };
+  }
 
   const now = new Date().toISOString();
   const updated: Order = {
@@ -73,5 +98,5 @@ export function updateDevOrderStatus(
   };
 
   devOrders.set(id, updated);
-  return updated;
+  return { order: updated, noop: false };
 }

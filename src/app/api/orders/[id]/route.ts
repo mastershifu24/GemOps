@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDevMode, updateDevOrderStatus } from "@/lib/dev-orders";
+import { assertOrderTransition } from "@/lib/order-transitions";
 import { createApiClient } from "@/lib/supabase/api";
 import type { OrderStatus, PaymentMethod } from "@/types/database";
 import type { Database } from "@/types/supabase";
@@ -20,26 +21,57 @@ export async function PATCH(
     return NextResponse.json({ error: "status required" }, { status: 400 });
   }
 
+  const nextStatus = status as OrderStatus;
   const payment =
     paymentMethod && amountPaidCents !== undefined
       ? { payment_method: paymentMethod, amount_paid_cents: amountPaidCents }
       : undefined;
 
   if (isDevMode()) {
-    const updated = updateDevOrderStatus(id, status as OrderStatus, payment);
-    if (!updated) {
+    const result = updateDevOrderStatus(id, nextStatus, payment);
+    if (!result) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    return NextResponse.json({ ...updated, persisted: false });
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: 409 });
+    }
+    return NextResponse.json({
+      ...result.order,
+      persisted: false,
+      idempotent: result.noop,
+    });
   }
 
   const supabase = createApiClient();
-  const updates: OrderUpdate = { status };
+  const { data: existing, error: fetchError } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (status === "paid" || status === "in_studio") {
+  if (fetchError || !existing) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+
+  const transition = assertOrderTransition(
+    existing.status as OrderStatus,
+    nextStatus
+  );
+
+  if (!transition.ok) {
+    return NextResponse.json({ error: transition.error }, { status: 409 });
+  }
+
+  if (transition.noop) {
+    return NextResponse.json({ ...existing, idempotent: true });
+  }
+
+  const updates: OrderUpdate = { status: nextStatus };
+
+  if (nextStatus === "paid" || nextStatus === "in_studio") {
     updates.paid_at = new Date().toISOString();
   }
-  if (status === "completed") {
+  if (nextStatus === "completed") {
     updates.completed_at = new Date().toISOString();
   }
   if (paymentMethod) {

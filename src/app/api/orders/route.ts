@@ -5,10 +5,26 @@ import {
   isDevMode,
   listDevOrders,
 } from "@/lib/dev-orders";
+import { toCreateOrderResponse } from "@/lib/order-response";
 import { calculateOrderTotalCents } from "@/lib/pricing";
 import { createApiClient } from "@/lib/supabase/api";
-import type { OrderSizingMetadata, SlotAssignment } from "@/types/database";
+import type { Order, OrderSizingMetadata, OrderStatus, SlotAssignment } from "@/types/database";
 import type { Database, Json } from "@/types/supabase";
+
+type CreateOrderRow = Pick<
+  Order,
+  "id" | "order_code" | "status" | "assembly_script" | "total_cents"
+>;
+
+function asCreateOrderRow(row: {
+  id: string;
+  order_code: string;
+  status: string;
+  assembly_script: string | null;
+  total_cents: number;
+}): CreateOrderRow {
+  return { ...row, status: row.status as OrderStatus };
+}
 
 type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
 
@@ -38,7 +54,7 @@ export async function POST(request: Request) {
   const totalCents = calculateOrderTotalCents(body.slot_layout);
 
   if (isDevMode()) {
-    const order = createDevOrder({
+    const { order, idempotent } = createDevOrder({
       order_code: orderCode,
       design_template_id: body.design_template_id,
       slot_layout: body.slot_layout,
@@ -49,18 +65,26 @@ export async function POST(request: Request) {
       sizing_metadata: body.sizing_metadata ?? null,
     });
 
-    return NextResponse.json({
-      id: order.id,
-      order_code: order.order_code,
-      status: order.status,
-      assembly_script: order.assembly_script,
-      total_cents: order.total_cents,
-      persisted: false,
-    });
+    return NextResponse.json(
+      toCreateOrderResponse(order, { persisted: false, idempotent })
+    );
   }
 
   try {
     const supabase = createApiClient();
+
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id, order_code, status, assembly_script, total_cents")
+      .eq("order_code", orderCode)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json(
+        toCreateOrderResponse(asCreateOrderRow(existing), { idempotent: true })
+      );
+    }
+
     const payload: OrderInsert = {
       order_code: orderCode,
       design_template_id: body.design_template_id,
@@ -80,10 +104,26 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        const replay = await supabase
+          .from("orders")
+          .select("id, order_code, status, assembly_script, total_cents")
+          .eq("order_code", orderCode)
+          .single();
+
+        if (replay.data) {
+          return NextResponse.json(
+            toCreateOrderResponse(asCreateOrderRow(replay.data), {
+              idempotent: true,
+            })
+          );
+        }
+      }
+
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ...data, persisted: true });
+    return NextResponse.json(toCreateOrderResponse(asCreateOrderRow(data)));
   } catch (err) {
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ error: message }, { status: 500 });

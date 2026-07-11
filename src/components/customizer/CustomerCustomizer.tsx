@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildAssemblyScript,
   countFilledSlots,
@@ -90,6 +90,7 @@ export function CustomerCustomizer() {
     null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const finalizeOrderCodeRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showMeasureGuide, setShowMeasureGuide] = useState(false);
   const [showArPreview, setShowArPreview] = useState(false);
@@ -475,6 +476,8 @@ export function CustomerCustomizer() {
   );
 
   const handleFinalize = useCallback(async () => {
+    if (isSubmitting) return;
+
     if (filledCount === 0) {
       setError("Place at least one bead before finalizing.");
       return;
@@ -484,7 +487,8 @@ export function CustomerCustomizer() {
     setError(null);
 
     const layout = slots.filter((s): s is SlotAssignment => s !== null);
-    const code = generateOrderCode();
+    const code = finalizeOrderCodeRef.current ?? generateOrderCode();
+    finalizeOrderCodeRef.current = code;
     const script = buildAssemblyScript(layout);
     const totalCents = calculateOrderTotalCents(layout);
     const lengthLabel = selectedLength
@@ -545,6 +549,7 @@ export function CustomerCustomizer() {
     allTemplates,
     arPreviewUsed,
     filledCount,
+    isSubmitting,
     measuredCircumferenceIn,
     productType,
     selectedLength,
@@ -553,6 +558,7 @@ export function CustomerCustomizer() {
   ]);
 
   const handleStartOver = useCallback(() => {
+    finalizeOrderCodeRef.current = null;
     setPhase("designing");
     setOrderCode(null);
     setOrderTotalCents(0);
