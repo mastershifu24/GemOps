@@ -21,3 +21,25 @@ export function getAppUrl(): string {
 export function getCustomizeUrl(): string {
   return `${getAppUrl()}/customize`;
 }
+
+/** Human-readable pickup window for checkout and fit confirmation. */
+export function getPickupEstimateLabel(): string {
+  const min = process.env.NEXT_PUBLIC_PICKUP_DAYS_MIN?.trim();
+  const max = process.env.NEXT_PUBLIC_PICKUP_DAYS_MAX?.trim();
+
+  if (min && max && min !== max) {
+    return `Ready in ${min}–${max} business days`;
+  }
+  if (max) {
+    return `Ready in about ${max} business days`;
+  }
+  if (min) {
+    return `Ready in about ${min} business days`;
+  }
+  return "Ready in 3–5 business days";
+}
+
+/** QR payload — order code staff can find on POS. */
+export function getOrderProofCode(orderCode: string): string {
+  return orderCode.replace(/^#/, "");
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import { getPickupEstimateLabel } from "@/lib/branding";
+
 interface ArFitConfirmedBannerProps {
   snapshotDataUrl: string | null;
   method: "manual" | "tracking";
@@ -13,6 +15,8 @@ export function ArFitConfirmedBanner({
   onDismiss,
   onTryAgain,
 }: ArFitConfirmedBannerProps) {
+  const pickupLabel = getPickupEstimateLabel();
+
   return (
     <div className="rounded-xl border border-gem-gold/35 bg-gem-gold/10 p-4">
       <div className="flex gap-4">
@@ -24,12 +28,13 @@ export function ArFitConfirmedBanner({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gem-gold">Fit confirmed</p>
+          <p className="text-sm font-medium text-gem-gold">Fit confirmed ✓</p>
           <p className="mt-1 text-xs leading-relaxed text-gem-mist/75">
             {method === "tracking"
-              ? "Placement saved with body tracking. Staff will see this on your order."
-              : "You placed the design on your wrist. Staff will see fit was checked in store."}
+              ? "Placement saved with tracking. This will show on your order when you finalize."
+              : "You checked the fit on your wrist. This will show on your order when you finalize."}
           </p>
+          <p className="mt-2 text-xs text-gem-mist/55">{pickupLabel}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"

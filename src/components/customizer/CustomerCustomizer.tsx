@@ -13,7 +13,7 @@ import {
   SEED_TEMPLATES,
   toSlotAssignment,
 } from "@/lib/constants";
-import { calculateOrderTotalCents, formatCurrency } from "@/lib/pricing";
+import { calculateOrderTotalCents } from "@/lib/pricing";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   formatLengthLabel,
@@ -39,6 +39,7 @@ import { ArFitConfirmedBanner } from "@/components/ar/ArFitConfirmedBanner";
 import { WristMeasureGuide } from "@/components/ar/WristMeasureGuide";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
+import { LivePriceBar } from "@/components/customizer/LivePriceBar";
 import { ClaspPicker } from "@/components/customizer/ClaspPicker";
 import { DesignControls } from "@/components/customizer/DesignControls";
 import { FinalizeErrorBanner } from "@/components/customizer/FinalizeErrorBanner";
@@ -159,6 +160,13 @@ export function CustomerCustomizer() {
     strandCount
   );
   const filledCount = useMemo(() => countFilledSlots(slots), [slots]);
+  const liveTotalCents = useMemo(
+    () =>
+      calculateOrderTotalCents(
+        slots.filter((s): s is SlotAssignment => s !== null)
+      ),
+    [slots]
+  );
   const remainingCount = activeSlotCount - filledCount;
   const nextEmptyIndex = useMemo(() => findNextEmptySlotIndex(slots), [slots]);
   const patternMode = patternDraft !== null && patternDraft.stoneB === null;
@@ -597,6 +605,7 @@ export function CustomerCustomizer() {
         }
         wristLengthLabel={lockedLengthLabel}
         totalCents={orderTotalCents}
+        arFitConfirmed={arFitConfirmed}
         onStartOver={handleStartOver}
       />
     );
@@ -632,6 +641,7 @@ export function CustomerCustomizer() {
             />
           </div>
         )}
+        <LivePriceBar totalCents={liveTotalCents} filledCount={filledCount} />
       </header>
 
       <main className="flex flex-1 flex-col gap-5 px-4 pb-8 pt-3">
@@ -757,19 +767,6 @@ export function CustomerCustomizer() {
         {error && !finalizeError && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error}
-          </p>
-        )}
-
-        {filledCount > 0 && (
-          <p className="text-center text-sm text-gem-mist/50">
-            Est. total{" "}
-            <span className="font-medium text-gem-gold">
-              {formatCurrency(
-                calculateOrderTotalCents(
-                  slots.filter((s): s is SlotAssignment => s !== null)
-                )
-              )}
-            </span>
           </p>
         )}
 
