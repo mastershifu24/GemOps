@@ -35,6 +35,7 @@ import { getArPlacement } from "@/lib/ar/scene-descriptor";
 import { buildOrderSizingMetadata, supportsCamera } from "@/lib/ar/sizing";
 import { StoreHeader } from "@/components/brand/StoreHeader";
 import { CameraArPreview } from "@/components/ar/CameraArPreview";
+import { ArFitConfirmedBanner } from "@/components/ar/ArFitConfirmedBanner";
 import { WristMeasureGuide } from "@/components/ar/WristMeasureGuide";
 import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
@@ -100,6 +101,10 @@ export function CustomerCustomizer() {
     number | null
   >(null);
   const [arPreviewUsed, setArPreviewUsed] = useState(false);
+  const [arFitConfirmed, setArFitConfirmed] = useState(false);
+  const [arFitMethod, setArFitMethod] = useState<"manual" | "tracking">("manual");
+  const [arSnapshot, setArSnapshot] = useState<string | null>(null);
+  const [showArFitBanner, setShowArFitBanner] = useState(false);
   const [cameraAvailable, setCameraAvailable] = useState(false);
 
   useEffect(() => {
@@ -514,6 +519,8 @@ export function CustomerCustomizer() {
       strandCount,
       measuredCircumferenceIn,
       arPreviewUsed,
+      arFitConfirmed,
+      arFitMethod: arFitConfirmed ? arFitMethod : undefined,
     });
 
     try {
@@ -556,6 +563,8 @@ export function CustomerCustomizer() {
     activeTemplate,
     allTemplates,
     arPreviewUsed,
+    arFitConfirmed,
+    arFitMethod,
     filledCount,
     isSubmitting,
     measuredCircumferenceIn,
@@ -651,6 +660,7 @@ export function CustomerCustomizer() {
           }}
           cameraAvailable={cameraAvailable}
           arPreviewUsed={arPreviewUsed}
+          arFitConfirmed={arFitConfirmed}
           showStrandToggle={showStrandToggle}
           strandCount={strandCount}
           onStrandCountChange={handleStrandCountChange}
@@ -666,9 +676,30 @@ export function CustomerCustomizer() {
           />
         )}
 
+        {showArFitBanner && (
+          <ArFitConfirmedBanner
+            snapshotDataUrl={arSnapshot}
+            method={arFitMethod}
+            onDismiss={() => setShowArFitBanner(false)}
+            onTryAgain={() => {
+              setShowArFitBanner(false);
+              setArPreviewUsed(true);
+              setShowArPreview(true);
+            }}
+          />
+        )}
+
         <CameraArPreview
           open={showArPreview}
           onClose={() => setShowArPreview(false)}
+          onConfirmFit={({ method, snapshotDataUrl }) => {
+            setArFitConfirmed(true);
+            setArFitMethod(method);
+            setArPreviewUsed(true);
+            setArSnapshot(snapshotDataUrl);
+            setShowArPreview(false);
+            setShowArFitBanner(true);
+          }}
           placement={getArPlacement(productType)}
           slots={slots}
           layout={previewLayout}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArTryOnOverlay } from "@/components/ar/ArTryOnOverlay";
+import { captureTryOnSnapshot } from "@/lib/ar/capture-snapshot";
 import {
   useArBodyTracking,
   useArManualGestures,
@@ -10,9 +11,16 @@ import type { TemplateLayout } from "@/lib/template-layout";
 import type { ArPlacementHint } from "@/types/ar";
 import type { ProductType, SlotState, StrandCount } from "@/types/database";
 
+export interface ArFitConfirmResult {
+  method: "manual" | "tracking";
+  snapshotDataUrl: string | null;
+  ringDiameterPx: number;
+}
+
 interface CameraArPreviewProps {
   open: boolean;
   onClose: () => void;
+  onConfirmFit: (result: ArFitConfirmResult) => void;
   placement: ArPlacementHint;
   slots: SlotState[];
   layout: TemplateLayout;
@@ -76,6 +84,7 @@ function anchorHint(
 export function CameraArPreview({
   open,
   onClose,
+  onConfirmFit,
   placement,
   slots,
   layout,
@@ -163,6 +172,27 @@ export function CameraArPreview({
   const rotation = transform?.rotation ?? 0;
   const scaleX = transform?.scaleX ?? 1;
   const scaleY = transform?.scaleY ?? 1;
+
+  const handleConfirmFit = async () => {
+    const video = videoRef.current;
+    let snapshotDataUrl: string | null = null;
+    if (video && ready) {
+      snapshotDataUrl = await captureTryOnSnapshot({
+        video,
+        mirrorX,
+        viewportWidth: vw,
+        viewportHeight: vh,
+        centerX: x,
+        centerY: y,
+        ringDiameterPx: pixelScale,
+      });
+    }
+    onConfirmFit({
+      method: tracking ? "tracking" : "manual",
+      snapshotDataUrl,
+      ringDiameterPx: pixelScale,
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-[60] touch-none bg-black">
@@ -273,9 +303,22 @@ export function CameraArPreview({
         </div>
       )}
 
-      <p className="pointer-events-none absolute inset-x-4 bottom-4 text-center text-[10px] text-gem-mist/45">
-        Drag to move · pinch to resize · works best in good lighting
-      </p>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-4 pb-6 pt-16">
+        <div className="pointer-events-auto flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleConfirmFit}
+            disabled={!ready}
+            className="w-full rounded-xl bg-gem-gold py-3.5 text-sm font-medium text-gem-ink transition hover:bg-gem-gold/90 disabled:opacity-40"
+          >
+            Confirm fit
+          </button>
+          <p className="text-center text-[10px] text-gem-mist/45">
+            Drag to move · pinch to resize · confirm when it looks right on your
+            wrist
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

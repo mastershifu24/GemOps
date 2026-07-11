@@ -43,6 +43,8 @@ export function buildOrderSizingMetadata(input: {
   strandCount?: StrandCount;
   measuredCircumferenceIn?: number | null;
   arPreviewUsed?: boolean;
+  arFitConfirmed?: boolean;
+  arFitMethod?: "manual" | "tracking";
 }): OrderSizingMetadata {
   const lengthIn = input.lengthLabel
     ? parseInchesFromLabel(input.lengthLabel)
@@ -58,6 +60,8 @@ export function buildOrderSizingMetadata(input: {
     strand_count: input.strandCount ?? 1,
     measured_circumference_in: input.measuredCircumferenceIn ?? null,
     ar_preview_used: input.arPreviewUsed ?? false,
+    ar_fit_confirmed: input.arFitConfirmed ?? false,
+    ar_fit_method: input.arFitConfirmed ? input.arFitMethod : undefined,
     captured_at: new Date().toISOString(),
   };
 }

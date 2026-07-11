@@ -48,6 +48,9 @@ export interface OrderSizingMetadata {
   strand_count?: StrandCount;
   measured_circumference_in: number | null;
   ar_preview_used: boolean;
+  /** Customer tapped Confirm fit in camera try-on */
+  ar_fit_confirmed?: boolean;
+  ar_fit_method?: "manual" | "tracking";
   captured_at: string;
 }
 

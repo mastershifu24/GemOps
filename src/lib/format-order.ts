@@ -17,7 +17,8 @@ export function formatSizingSummary(
   if (sizing.measured_circumference_in != null) {
     parts.push(`Measured ${sizing.measured_circumference_in}"`);
   }
-  if (sizing.ar_preview_used) parts.push("AR preview used");
+  if (sizing.ar_fit_confirmed) parts.push("Fit confirmed in store");
+  else if (sizing.ar_preview_used) parts.push("AR preview used");
 
   return parts.length > 0 ? parts.join(" · ") : null;
 }

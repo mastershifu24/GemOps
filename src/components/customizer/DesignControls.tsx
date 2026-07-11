@@ -26,6 +26,7 @@ interface DesignControlsProps {
   onTryAr?: () => void;
   cameraAvailable?: boolean;
   arPreviewUsed?: boolean;
+  arFitConfirmed?: boolean;
   showStrandToggle?: boolean;
   strandCount?: StrandCount;
   onStrandCountChange?: (count: StrandCount) => void;
@@ -51,6 +52,7 @@ export function DesignControls({
   onTryAr,
   cameraAvailable = false,
   arPreviewUsed = false,
+  arFitConfirmed = false,
   showStrandToggle = false,
   strandCount = 1,
   onStrandCountChange,
@@ -117,7 +119,11 @@ export function DesignControls({
                   disabled={!cameraAvailable}
                   className="flex-1 rounded-xl border border-white/15 py-2.5 text-sm text-gem-mist transition hover:border-gem-gold/40 hover:text-gem-gold disabled:opacity-40"
                 >
-                  {arPreviewUsed ? "Live try-on again" : "Live try-on"}
+                  {arFitConfirmed
+                    ? "Fit confirmed ✓"
+                    : arPreviewUsed
+                      ? "Live try-on again"
+                      : "Live try-on"}
                 </button>
               )}
             </div>
@@ -128,7 +134,9 @@ export function DesignControls({
             )}
             {cameraAvailable && onTryAr && (
               <p className="mt-1.5 text-[10px] text-gem-mist/40">
-                Camera try-on — auto-tracks on iOS 16+; older phones use drag & pinch.
+                {arFitConfirmed
+                  ? "Fit saved — staff will see this on your order."
+                  : "Place on wrist, tap Confirm fit when it looks right."}
               </p>
             )}
           </div>
