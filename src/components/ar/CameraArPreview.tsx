@@ -24,14 +24,44 @@ interface CameraArPreviewProps {
   onSlotTap?: (index: number) => void;
 }
 
-function anchorHint(anchor: ArPlacementHint["anchor"]): string {
+type CameraFacing = "user" | "environment";
+
+async function openCamera(facing: CameraFacing): Promise<MediaStream> {
+  const ideal = {
+    video: {
+      facingMode: { ideal: facing },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+    audio: false as const,
+  };
+
+  try {
+    return await navigator.mediaDevices.getUserMedia(ideal);
+  } catch {
+    // iOS Safari often rejects strict resolution — retry with facing mode only
+    return navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing },
+      audio: false,
+    });
+  }
+}
+
+function anchorHint(
+  anchor: ArPlacementHint["anchor"],
+  facing: CameraFacing
+): string {
   switch (anchor) {
     case "neck":
       return "Face the camera — necklace follows your neckline";
     case "ankle":
-      return "Point camera at your ankle — tracking adjusts the anklet";
+      return facing === "user"
+        ? "Hold phone low and show your ankle in frame"
+        : "Point the back camera at your ankle";
     default:
-      return "Show your wrist to the camera — bracelet locks on automatically";
+      return facing === "user"
+        ? "Hold your hand up to the front camera, wrist in the center"
+        : "Show your wrist to the camera — or tap Flip to use front camera";
   }
 }
 
@@ -51,13 +81,27 @@ export function CameraArPreview({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<CameraFacing>(
+    placement.camera_facing
+  );
 
-  const mirrorX = placement.camera_facing === "user";
+  const mirrorX = cameraFacing === "user";
 
-  const { transform, tracking, modelsLoading, manualAdjust, setManualAdjust } =
-    useArBodyTracking(videoRef, open, productType, mirrorX);
+  const {
+    transform,
+    tracking,
+    modelsLoading,
+    modelsError,
+    manualAdjust,
+    setManualAdjust,
+  } = useArBodyTracking(videoRef, open, productType, mirrorX);
 
   const gestures = useArManualGestures(setManualAdjust);
+
+  useEffect(() => {
+    if (!open) return;
+    setCameraFacing(placement.camera_facing);
+  }, [open, placement.camera_facing]);
 
   useEffect(() => {
     if (!open) return;
@@ -72,14 +116,7 @@ export function CameraArPreview({
           throw new Error("Camera not supported in this browser");
         }
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: placement.camera_facing },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
+        stream = await openCamera(cameraFacing);
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -98,7 +135,7 @@ export function CameraArPreview({
     return () => {
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [open, placement.camera_facing]);
+  }, [open, cameraFacing]);
 
   if (!open) return null;
 
@@ -169,24 +206,41 @@ export function CameraArPreview({
             Live try-on
           </p>
           <p className="mt-1 text-sm leading-snug text-gem-mist/90">
-            {anchorHint(placement.anchor)}
+            {anchorHint(placement.anchor, cameraFacing)}
           </p>
           <p className="mt-2 text-[11px] text-gem-mist/50">
             {modelsLoading
               ? "Loading body tracking…"
-              : tracking
-                ? "Tracking locked — drag to fine-tune, pinch to resize"
-                : "Show your body in frame — drag & pinch to adjust manually"}
+              : modelsError
+                ? modelsError
+                : tracking
+                  ? "Tracking locked — drag to fine-tune, pinch to resize"
+                  : "Center your body in frame — drag & pinch to adjust manually"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="pointer-events-auto shrink-0 rounded-full border border-white/20 bg-black/50 px-4 py-2 text-sm text-gem-mist"
-        >
-          Done
-        </button>
+        <div className="pointer-events-auto flex shrink-0 flex-col gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              setCameraFacing((f) => (f === "user" ? "environment" : "user"))
+            }
+            className="rounded-full border border-white/20 bg-black/50 px-3 py-2 text-xs text-gem-mist"
+          >
+            Flip
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-white/20 bg-black/50 px-4 py-2 text-sm text-gem-mist"
+          >
+            Done
+          </button>
+        </div>
       </div>
+
+      {!tracking && ready && placement.anchor === "wrist" && (
+        <div className="pointer-events-none absolute left-1/2 top-[52%] h-28 w-44 -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-dashed border-gem-gold/35" />
+      )}
 
       {tracking && (
         <div className="pointer-events-none absolute left-4 top-24 rounded-full border border-gem-gold/40 bg-gem-gold/15 px-3 py-1 text-[10px] uppercase tracking-wider text-gem-gold">

@@ -1,7 +1,7 @@
 import type { ProductType } from "@/types/database";
 
 const WASM_CDN =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 
 const HAND_MODEL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
@@ -99,6 +99,22 @@ let handLandmarkerPromise: Promise<HandLandmarkerInstance | null> | null =
   null;
 let poseLandmarkerPromise: Promise<PoseLandmarkerInstance | null> | null = null;
 
+type VisionDelegate = "GPU" | "CPU";
+
+async function createWithDelegate<T>(
+  delegates: VisionDelegate[],
+  create: (delegate: VisionDelegate) => Promise<T>
+): Promise<T | null> {
+  for (const delegate of delegates) {
+    try {
+      return await create(delegate);
+    } catch (err) {
+      console.warn(`[AR] ${delegate} delegate failed:`, err);
+    }
+  }
+  return null;
+}
+
 async function loadHandLandmarker(): Promise<HandLandmarkerInstance | null> {
   if (typeof window === "undefined") return null;
   try {
@@ -106,15 +122,21 @@ async function loadHandLandmarker(): Promise<HandLandmarkerInstance | null> {
       "@mediapipe/tasks-vision"
     );
     const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
-    return HandLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: HAND_MODEL,
-        delegate: "GPU",
-      },
-      runningMode: "VIDEO",
-      numHands: 1,
-    }) as Promise<HandLandmarkerInstance>;
-  } catch {
+    return createWithDelegate(["GPU", "CPU"], (delegate) =>
+      HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: HAND_MODEL,
+          delegate,
+        },
+        runningMode: "VIDEO",
+        numHands: 2,
+        minHandDetectionConfidence: 0.35,
+        minHandPresenceConfidence: 0.35,
+        minTrackingConfidence: 0.35,
+      })
+    );
+  } catch (err) {
+    console.error("[AR] Hand landmarker load failed:", err);
     return null;
   }
 }
@@ -126,15 +148,21 @@ async function loadPoseLandmarker(): Promise<PoseLandmarkerInstance | null> {
       "@mediapipe/tasks-vision"
     );
     const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
-    return PoseLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: POSE_MODEL,
-        delegate: "GPU",
-      },
-      runningMode: "VIDEO",
-      numPoses: 1,
-    }) as Promise<PoseLandmarkerInstance>;
-  } catch {
+    return createWithDelegate(["GPU", "CPU"], (delegate) =>
+      PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: POSE_MODEL,
+          delegate,
+        },
+        runningMode: "VIDEO",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.4,
+        minPosePresenceConfidence: 0.4,
+        minTrackingConfidence: 0.4,
+      })
+    );
+  } catch (err) {
+    console.error("[AR] Pose landmarker load failed:", err);
     return null;
   }
 }
@@ -151,6 +179,17 @@ export function getPoseLandmarker(): Promise<PoseLandmarkerInstance | null> {
     poseLandmarkerPromise = loadPoseLandmarker();
   }
   return poseLandmarkerPromise;
+}
+
+export async function arModelsAvailable(): Promise<{
+  hand: boolean;
+  pose: boolean;
+}> {
+  const [hand, pose] = await Promise.all([
+    getHandLandmarker(),
+    getPoseLandmarker(),
+  ]);
+  return { hand: hand !== null, pose: pose !== null };
 }
 
 function transformFromHand(
@@ -177,15 +216,20 @@ function transformFromHand(
   );
 
   const wristNorm = { x: wrist.x, y: wrist.y };
+  const handWidth = dist(indexMcp, pinkyMcp);
   const palmSpread =
     (dist(wristNorm, indexMcp) +
       dist(wristNorm, middleMcp) +
       dist(wristNorm, ringMcp) +
       dist(wristNorm, pinkyMcp)) /
     4;
+  const wristSpan = Math.max(handWidth, palmSpread * 1.6);
 
   const baseSize = Math.min(viewportWidth, viewportHeight);
-  const scale = Math.max(0.35, Math.min(1.4, palmSpread * baseSize * 3.2));
+  const scale = Math.max(
+    baseSize * 0.18,
+    Math.min(baseSize * 0.55, wristSpan * baseSize * 2.6)
+  );
 
   const rotation =
     (Math.atan2(middleMcp.y - wrist.y, middleMcp.x - wrist.x) * 180) /
@@ -364,21 +408,19 @@ export async function detectArTransform(
   const { productType, mirrorX } = config;
   const mode = pickTrackingMode(productType);
 
-  if (mode === "hand") {
-    const hand = await getHandLandmarker();
-    if (hand) {
-      const result = hand.detectForVideo(video, timestamp);
-      const lm = result.landmarks?.[0];
-      if (lm?.length) {
-        const t = transformFromHand(
-          lm,
-          video,
-          viewportWidth,
-          viewportHeight,
-          mirrorX
-        );
-        if (t) return t;
-      }
+  const hand = await getHandLandmarker();
+  if (mode === "hand" && hand) {
+    const result = hand.detectForVideo(video, timestamp);
+    for (const lm of result.landmarks ?? []) {
+      if (!lm.length) continue;
+      const t = transformFromHand(
+        lm,
+        video,
+        viewportWidth,
+        viewportHeight,
+        mirrorX
+      );
+      if (t) return t;
     }
   }
 
@@ -387,7 +429,23 @@ export async function detectArTransform(
 
   const result = pose.detectForVideo(video, timestamp);
   const lm = result.landmarks?.[0];
-  if (!lm?.length) return null;
+  if (!lm?.length) {
+    if (mode === "hand" && hand) {
+      const handResult = hand.detectForVideo(video, timestamp);
+      for (const hlm of handResult.landmarks ?? []) {
+        if (!hlm.length) continue;
+        const t = transformFromHand(
+          hlm,
+          video,
+          viewportWidth,
+          viewportHeight,
+          mirrorX
+        );
+        if (t) return t;
+      }
+    }
+    return null;
+  }
 
   if (productType === "necklace" || productType === "dog_collar") {
     return transformFromPoseNeck(
@@ -418,11 +476,10 @@ export async function detectArTransform(
     );
   }
 
-  const hand = await getHandLandmarker();
   if (hand) {
     const handResult = hand.detectForVideo(video, timestamp);
-    const hlm = handResult.landmarks?.[0];
-    if (hlm?.length) {
+    for (const hlm of handResult.landmarks ?? []) {
+      if (!hlm.length) continue;
       const t = transformFromHand(
         hlm,
         video,

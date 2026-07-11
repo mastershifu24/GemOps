@@ -65,6 +65,7 @@ function arPlacementForProduct(productType: ProductType): ArPlacementHint {
         anchor: "ankle",
         overlay_y_percent: 72,
         overlay_scale: 0.75,
+        // Back camera — point at foot; flip to front if using pose wrist fallback
         camera_facing: "environment",
       };
     case "strand":
@@ -72,14 +73,15 @@ function arPlacementForProduct(productType: ProductType): ArPlacementHint {
         anchor: "wrist",
         overlay_y_percent: 58,
         overlay_scale: 1,
-        camera_facing: "environment",
+        // Front camera — hold hand up like a selfie; hand tracking needs this
+        camera_facing: "user",
       };
     default:
       return {
         anchor: "wrist",
         overlay_y_percent: 62,
         overlay_scale: 0.8,
-        camera_facing: "environment",
+        camera_facing: "user",
       };
   }
 }

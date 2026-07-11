@@ -128,7 +128,7 @@ export function DesignControls({
             )}
             {cameraAvailable && onTryAr && (
               <p className="mt-1.5 text-[10px] text-gem-mist/40">
-                Bracelet locks to your wrist on camera — drag or pinch to adjust.
+                iPhone Safari — hold wrist to front camera; drag or pinch to adjust.
               </p>
             )}
           </div>
