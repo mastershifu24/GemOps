@@ -112,8 +112,11 @@ export const MEASURE_GUIDE: Record<
 };
 
 export function supportsCamera(): boolean {
-  return (
-    typeof navigator !== "undefined" &&
-    Boolean(navigator.mediaDevices?.getUserMedia)
-  );
+  if (typeof navigator === "undefined") return false;
+  const hasMedia = Boolean(navigator.mediaDevices?.getUserMedia);
+  const secure =
+    typeof window === "undefined" ||
+    window.isSecureContext ||
+    window.location.hostname === "localhost";
+  return hasMedia && secure;
 }

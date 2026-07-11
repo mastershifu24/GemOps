@@ -117,13 +117,18 @@ export function DesignControls({
                   disabled={!cameraAvailable}
                   className="flex-1 rounded-xl border border-white/15 py-2.5 text-sm text-gem-mist transition hover:border-gem-gold/40 hover:text-gem-gold disabled:opacity-40"
                 >
-                  {arPreviewUsed ? "Try AR again" : "Try AR"}
+                  {arPreviewUsed ? "Live try-on again" : "Live try-on"}
                 </button>
               )}
             </div>
             {!cameraAvailable && onTryAr && (
               <p className="mt-1.5 text-[10px] text-gem-mist/40">
-                Camera not available in this browser.
+                Use a phone with camera access (Safari or Chrome).
+              </p>
+            )}
+            {cameraAvailable && onTryAr && (
+              <p className="mt-1.5 text-[10px] text-gem-mist/40">
+                Bracelet locks to your wrist on camera — drag or pinch to adjust.
               </p>
             )}
           </div>

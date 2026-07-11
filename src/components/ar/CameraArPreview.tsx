@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ProductModelViewer } from "@/components/customizer/ProductModelViewer";
+import {
+  useArBodyTracking,
+  useArManualGestures,
+} from "@/hooks/useArBodyTracking";
 import type { TemplateLayout } from "@/lib/template-layout";
 import type { ArPlacementHint } from "@/types/ar";
 import type { ProductType, SlotState, StrandCount } from "@/types/database";
@@ -18,6 +22,17 @@ interface CameraArPreviewProps {
   sequentialOnly?: boolean;
   strandCount?: StrandCount;
   onSlotTap?: (index: number) => void;
+}
+
+function anchorHint(anchor: ArPlacementHint["anchor"]): string {
+  switch (anchor) {
+    case "neck":
+      return "Face the camera — necklace follows your neckline";
+    case "ankle":
+      return "Point camera at your ankle — tracking adjusts the anklet";
+    default:
+      return "Show your wrist to the camera — bracelet locks on automatically";
+  }
 }
 
 export function CameraArPreview({
@@ -37,6 +52,13 @@ export function CameraArPreview({
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
+  const mirrorX = placement.camera_facing === "user";
+
+  const { transform, tracking, modelsLoading, manualAdjust, setManualAdjust } =
+    useArBodyTracking(videoRef, open, productType, mirrorX);
+
+  const gestures = useArManualGestures(setManualAdjust);
+
   useEffect(() => {
     if (!open) return;
 
@@ -46,14 +68,19 @@ export function CameraArPreview({
 
     (async () => {
       try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera not supported in this browser");
+        }
+
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: placement.camera_facing,
+            facingMode: { ideal: placement.camera_facing },
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
           audio: false,
         });
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
@@ -63,7 +90,7 @@ export function CameraArPreview({
         setError(
           err instanceof Error
             ? err.message
-            : "Camera access denied or unavailable"
+            : "Camera access denied — allow camera in browser settings"
         );
       }
     })();
@@ -75,63 +102,97 @@ export function CameraArPreview({
 
   if (!open) return null;
 
-  const anchorHint =
-    placement.anchor === "neck"
-      ? "Center the necklace on your neckline"
-      : placement.anchor === "ankle"
-        ? "Hold your ankle in the circle"
-        : "Place your wrist inside the circle";
+  const vw = typeof window !== "undefined" ? window.innerWidth : 390;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 844;
+
+  const ringSize = Math.min(vw, vh);
+  const x = (transform?.x ?? vw * 0.5) + manualAdjust.dx;
+  const y =
+    (transform?.y ?? (vh * placement.overlay_y_percent) / 100) +
+    manualAdjust.dy;
+  const pixelScale =
+    (transform?.scale ?? ringSize * 0.42 * placement.overlay_scale) *
+    manualAdjust.scaleMul;
+  const scaleFactor = pixelScale / ringSize;
+  const rotation = transform?.rotation ?? 0;
+  const scaleX = transform?.scaleX ?? 1;
+  const scaleY = transform?.scaleY ?? 1;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black">
+    <div className="fixed inset-0 z-[60] touch-none bg-black">
       <video
         ref={videoRef}
         playsInline
         muted
-        className="absolute inset-0 h-full w-full object-cover"
+        autoPlay
+        className={`absolute inset-0 h-full w-full object-cover ${
+          mirrorX ? "-scale-x-100" : ""
+        }`}
       />
 
-      <div className="absolute inset-0 bg-black/20" />
+      <div className="absolute inset-0 bg-black/10" />
 
       <div
-        className="pointer-events-none absolute w-[min(88vw,320px)]"
+        className="absolute left-0 top-0 will-change-transform"
         style={{
-          top: `${placement.overlay_y_percent}%`,
-          left: "50%",
-          transform: `translate(-50%, -50%) scale(${placement.overlay_scale})`,
+          transform: `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${rotation}deg) scale(${scaleFactor * scaleX}, ${scaleFactor * scaleY})`,
+          transformOrigin: "center center",
+          width: ringSize,
+          height: ringSize,
+          pointerEvents: "auto",
         }}
+        onPointerDown={gestures.onPointerDown}
+        onPointerMove={gestures.onPointerMove}
+        onPointerUp={gestures.onPointerUp}
+        onPointerCancel={gestures.onPointerUp}
+        onTouchStart={gestures.onTouchStart}
+        onTouchMove={gestures.onTouchMove}
+        onTouchEnd={gestures.onTouchEnd}
       >
-        <div className="pointer-events-auto">
-          <ProductModelViewer
-            slots={slots}
-            activeSlotIndex={activeSlotIndex}
-            layout={layout}
-            productType={productType}
-            centerLabel={previewLabel}
-            sequentialOnly={sequentialOnly}
-            strandCount={strandCount}
-            onSlotTap={onSlotTap}
-            enableSpin={false}
-            className="drop-shadow-2xl"
-          />
-        </div>
+        <ProductModelViewer
+          slots={slots}
+          activeSlotIndex={activeSlotIndex}
+          layout={layout}
+          productType={productType}
+          centerLabel={previewLabel}
+          sequentialOnly={sequentialOnly}
+          strandCount={strandCount}
+          onSlotTap={onSlotTap}
+          enableSpin={false}
+          className="drop-shadow-[0_8px_32px_rgba(0,0,0,0.55)]"
+        />
       </div>
 
-      <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pb-8 pt-4">
-        <div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/75 to-transparent px-4 pb-10 pt-4">
+        <div className="pointer-events-auto max-w-[75%]">
           <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-            AR try-on
+            Live try-on
           </p>
-          <p className="text-sm text-gem-mist/80">{anchorHint}</p>
+          <p className="mt-1 text-sm leading-snug text-gem-mist/90">
+            {anchorHint(placement.anchor)}
+          </p>
+          <p className="mt-2 text-[11px] text-gem-mist/50">
+            {modelsLoading
+              ? "Loading body tracking…"
+              : tracking
+                ? "Tracking locked — drag to fine-tune, pinch to resize"
+                : "Show your body in frame — drag & pinch to adjust manually"}
+          </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full border border-white/20 bg-black/40 px-4 py-2 text-sm text-gem-mist"
+          className="pointer-events-auto shrink-0 rounded-full border border-white/20 bg-black/50 px-4 py-2 text-sm text-gem-mist"
         >
           Done
         </button>
       </div>
+
+      {tracking && (
+        <div className="pointer-events-none absolute left-4 top-24 rounded-full border border-gem-gold/40 bg-gem-gold/15 px-3 py-1 text-[10px] uppercase tracking-wider text-gem-gold">
+          Tracking
+        </div>
+      )}
 
       {!ready && !error && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -140,14 +201,13 @@ export function CameraArPreview({
       )}
 
       {error && (
-        <div className="absolute inset-x-4 bottom-8 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+        <div className="absolute inset-x-4 bottom-24 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
           {error}
         </div>
       )}
 
-      <p className="absolute inset-x-4 bottom-4 text-center text-[10px] text-gem-mist/50">
-        MVP camera overlay — future updates can add hand/neck tracking for
-        precise fit.
+      <p className="pointer-events-none absolute inset-x-4 bottom-4 text-center text-[10px] text-gem-mist/45">
+        Drag to move · pinch to resize · works best in good lighting
       </p>
     </div>
   );
