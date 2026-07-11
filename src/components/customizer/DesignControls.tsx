@@ -128,7 +128,7 @@ export function DesignControls({
             )}
             {cameraAvailable && onTryAr && (
               <p className="mt-1.5 text-[10px] text-gem-mist/40">
-                iPhone Safari — hold wrist to front camera; drag or pinch to adjust.
+                Camera try-on — auto-tracks on iOS 16+; older phones use drag & pinch.
               </p>
             )}
           </div>

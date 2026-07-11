@@ -49,8 +49,20 @@ async function openCamera(facing: CameraFacing): Promise<MediaStream> {
 
 function anchorHint(
   anchor: ArPlacementHint["anchor"],
-  facing: CameraFacing
+  facing: CameraFacing,
+  manualOnly: boolean
 ): string {
+  if (manualOnly) {
+    switch (anchor) {
+      case "neck":
+        return "Line up the necklace on your neck — drag and pinch to adjust";
+      case "ankle":
+        return "Line up the anklet on your ankle — drag and pinch to adjust";
+      default:
+        return "Line up the bracelet on your wrist — drag and pinch to adjust";
+    }
+  }
+
   switch (anchor) {
     case "neck":
       return "Face the camera — necklace follows your neckline";
@@ -92,9 +104,13 @@ export function CameraArPreview({
     tracking,
     modelsLoading,
     modelsError,
+    placementMode,
+    manualOnlyReason,
     manualAdjust,
     setManualAdjust,
   } = useArBodyTracking(videoRef, open, productType, mirrorX);
+
+  const manualOnly = placementMode === "manual";
 
   const gestures = useArManualGestures(setManualAdjust);
 
@@ -203,19 +219,21 @@ export function CameraArPreview({
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/75 to-transparent px-4 pb-10 pt-4">
         <div className="pointer-events-auto max-w-[75%]">
           <p className="text-xs uppercase tracking-[0.25em] text-gem-gold">
-            Live try-on
+            {manualOnly ? "Camera try-on" : "Live try-on"}
           </p>
           <p className="mt-1 text-sm leading-snug text-gem-mist/90">
-            {anchorHint(placement.anchor, cameraFacing)}
+            {anchorHint(placement.anchor, cameraFacing, manualOnly)}
           </p>
           <p className="mt-2 text-[11px] text-gem-mist/50">
-            {modelsLoading
-              ? "Loading body tracking…"
-              : modelsError
-                ? modelsError
-                : tracking
-                  ? "Tracking locked — drag to fine-tune, pinch to resize"
-                  : "Center your body in frame — drag & pinch to adjust manually"}
+            {manualOnly && manualOnlyReason
+              ? manualOnlyReason
+              : modelsLoading
+                ? "Loading body tracking…"
+                : modelsError
+                  ? modelsError
+                  : tracking
+                    ? "Tracking locked — drag to fine-tune, pinch to resize"
+                    : "Center your body in frame — drag & pinch to adjust manually"}
           </p>
         </div>
         <div className="pointer-events-auto flex shrink-0 flex-col gap-2">
@@ -238,8 +256,14 @@ export function CameraArPreview({
         </div>
       </div>
 
-      {!tracking && ready && placement.anchor === "wrist" && (
+      {(manualOnly || (!tracking && ready)) && placement.anchor === "wrist" && (
         <div className="pointer-events-none absolute left-1/2 top-[52%] h-28 w-44 -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-dashed border-gem-gold/35" />
+      )}
+
+      {manualOnly && ready && (
+        <div className="pointer-events-none absolute left-4 top-24 rounded-full border border-white/25 bg-black/40 px-3 py-1 text-[10px] uppercase tracking-wider text-gem-mist/80">
+          Manual
+        </div>
       )}
 
       {tracking && (

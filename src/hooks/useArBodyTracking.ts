@@ -9,6 +9,7 @@ import {
   pickTrackingMode,
   type ArOverlayTransform,
 } from "@/lib/ar/body-tracking";
+import { resolveArPlacementMode, type ArPlacementMode } from "@/lib/ar/capabilities";
 import type { ProductType } from "@/types/database";
 
 const SMOOTHING = 0.28;
@@ -36,6 +37,8 @@ export interface UseArBodyTrackingResult {
   tracking: boolean;
   modelsLoading: boolean;
   modelsError: string | null;
+  placementMode: ArPlacementMode;
+  manualOnlyReason: string | null;
   manualAdjust: { dx: number; dy: number; scaleMul: number };
   setManualAdjust: React.Dispatch<
     React.SetStateAction<{ dx: number; dy: number; scaleMul: number }>
@@ -52,6 +55,8 @@ export function useArBodyTracking(
   const [tracking, setTracking] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState<string | null>(null);
+  const [placementMode, setPlacementMode] = useState<ArPlacementMode>("tracking");
+  const [manualOnlyReason, setManualOnlyReason] = useState<string | null>(null);
   const [manualAdjust, setManualAdjust] = useState({
     dx: 0,
     dy: 0,
@@ -69,25 +74,41 @@ export function useArBodyTracking(
       setTransform(null);
       setTracking(false);
       setModelsError(null);
+      setPlacementMode("tracking");
+      setManualOnlyReason(null);
       return;
     }
 
     setManualAdjust({ dx: 0, dy: 0, scaleMul: 1 });
-    setModelsLoading(true);
     setModelsError(null);
     detectTimestampRef.current = 0;
 
-    const mode = pickTrackingMode(productType);
+    const { mode, reason } = resolveArPlacementMode();
+    setPlacementMode(mode);
+    setManualOnlyReason(reason);
+
+    if (mode === "manual") {
+      setModelsLoading(false);
+      setTracking(false);
+      smoothedRef.current = null;
+      setTransform(null);
+      return;
+    }
+
+    setModelsLoading(true);
+    let trackingActive = true;
+
+    const trackingMode = pickTrackingMode(productType);
     const loaders =
-      mode === "hand"
+      trackingMode === "hand"
         ? [getHandLandmarker(), getPoseLandmarker()]
         : [getPoseLandmarker(), getHandLandmarker()];
 
     Promise.all(loaders)
       .then(async () => {
         const available = await arModelsAvailable();
-        const needsHand = mode === "hand";
-        const needsPose = mode === "pose";
+        const needsHand = trackingMode === "hand";
+        const needsPose = trackingMode === "pose";
         const ok =
           (needsHand && available.hand) ||
           (needsPose && available.pose) ||
@@ -95,14 +116,23 @@ export function useArBodyTracking(
           available.pose;
 
         if (!ok) {
+          trackingActive = false;
+          smoothedRef.current = null;
+          setTransform(null);
+          setTracking(false);
+          setPlacementMode("manual");
+          setManualOnlyReason(
+            "Manual placement — drag the jewelry onto your body"
+          );
           setModelsError(
-            "Body tracking failed to load — drag the jewelry into place"
+            "Auto-tracking unavailable — drag & pinch to fit"
           );
         }
       })
       .finally(() => setModelsLoading(false));
 
     const loop = (timestamp: number) => {
+      if (!trackingActive) return;
       const video = videoRef.current;
       if (!video || video.readyState < 2) {
         rafRef.current = requestAnimationFrame(loop);
@@ -156,6 +186,8 @@ export function useArBodyTracking(
     tracking,
     modelsLoading,
     modelsError,
+    placementMode,
+    manualOnlyReason,
     manualAdjust,
     setManualAdjust,
   };
