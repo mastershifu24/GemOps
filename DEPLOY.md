@@ -10,6 +10,7 @@ Set in **Project → Settings → Environment Variables**:
 |----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key from Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role key (Vercel **server only**, not `NEXT_PUBLIC_`) |
 | `NEXT_PUBLIC_STORE_NAME` | Your store name (e.g. `GemOps`) |
 | `NEXT_PUBLIC_STORE_TAGLINE` | Tagline on hub + customizer |
 | `NEXT_PUBLIC_APP_URL` | `https://gemops.vercel.app` |
@@ -27,7 +28,8 @@ Do **not** re-run full `schema.sql` on a live database.
 4. **`supabase/ar-metadata.sql`** — `orders.sizing_metadata` JSONB column.
 5. **`supabase/seed-prices.sql`** — `unit_cost_cents` on seed components.
 6. **`supabase/phase5-payments.sql`** — payment columns on orders (if not already applied).
-7. **`supabase/admin-policies.sql`** — staff RLS policies (if using authenticated `/pos` and `/admin`).
+7. **`supabase/staff-rls.sql`** — staff-only order queue + component admin (required for API security).
+8. **`supabase/admin-policies.sql`** — legacy; skip if `staff-rls.sql` was applied.
 
 ## 3. Staff login
 

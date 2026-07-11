@@ -196,37 +196,41 @@ CREATE POLICY "Public read active components"
   ON public.components FOR SELECT
   USING (is_active = true);
 
-CREATE POLICY "Admin read all components"
-  ON public.components FOR SELECT
-  USING (true);
-
 CREATE POLICY "Public read active templates"
   ON public.design_templates FOR SELECT
   USING (is_active = true);
 
-CREATE POLICY "Anyone can create orders"
-  ON public.orders FOR INSERT
-  WITH CHECK (true);
-
-CREATE POLICY "Anyone can read orders"
+-- Orders: created via POST /api/orders (service role); staff read/update when logged in
+CREATE POLICY "Staff read orders"
   ON public.orders FOR SELECT
+  TO authenticated
   USING (true);
 
-CREATE POLICY "Anyone can update order status"
+CREATE POLICY "Staff update orders"
   ON public.orders FOR UPDATE
-  USING (true);
-
--- Admin CRUD on components (MVP: anon key; tighten with auth roles in production)
-CREATE POLICY "Admin insert components"
-  ON public.components FOR INSERT
+  TO authenticated
+  USING (true)
   WITH CHECK (true);
 
-CREATE POLICY "Admin update components"
-  ON public.components FOR UPDATE
+CREATE POLICY "Staff read all components"
+  ON public.components FOR SELECT
+  TO authenticated
   USING (true);
 
-CREATE POLICY "Admin delete components"
+CREATE POLICY "Staff insert components"
+  ON public.components FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Staff update components"
+  ON public.components FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Staff delete components"
   ON public.components FOR DELETE
+  TO authenticated
   USING (true);
 
 -- ---------------------------------------------------------------------------

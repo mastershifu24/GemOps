@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildArSceneDescriptor } from "@/lib/ar/scene-descriptor";
 import { isDevMode, listDevOrders } from "@/lib/dev-orders";
-import { createApiClient } from "@/lib/supabase/api";
+import { requireStaffSession } from "@/lib/supabase/route-auth";
 import type {
   DesignTemplate,
   OrderSizingMetadata,
@@ -35,8 +35,12 @@ export async function GET(request: Request) {
     return NextResponse.json(scene);
   }
 
-  const supabase = createApiClient();
-  const { data: order, error } = await supabase
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const { data: order, error } = await auth.db
     .from("orders")
     .select(
       "order_code, design_template_id, slot_layout, sizing_metadata, design_templates(*)"
@@ -48,14 +52,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const template = order.design_templates as unknown as DesignTemplate;
-  const slots = order.slot_layout as unknown as SlotAssignment[];
+  const row = order as {
+    order_code: string;
+    slot_layout: unknown;
+    sizing_metadata: unknown;
+    design_templates: unknown;
+  };
+
+  const template = row.design_templates as DesignTemplate;
+  const slots = row.slot_layout as SlotAssignment[];
 
   const scene = buildArSceneDescriptor({
     template,
     slots,
-    sizing: (order.sizing_metadata as OrderSizingMetadata | null) ?? null,
-    orderCode: order.order_code,
+    sizing: (row.sizing_metadata as OrderSizingMetadata | null) ?? null,
+    orderCode: row.order_code,
   });
 
   return NextResponse.json(scene);

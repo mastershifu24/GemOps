@@ -79,6 +79,12 @@ export function DemoWalkthrough() {
 
   const refreshOrder = useCallback(async (orderId: string) => {
     const res = await fetch("/api/orders");
+    if (res.status === 401) {
+      setError(
+        "Staff login required for cashier and studio steps. Open /login first, then return here."
+      );
+      return;
+    }
     if (!res.ok) return;
     const data = await res.json();
     const found = (data.orders as Order[]).find((o) => o.id === orderId);
@@ -159,7 +165,15 @@ export function DemoWalkthrough() {
         }),
       });
 
-      if (!res.ok) throw new Error("Could not mark paid");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          throw new Error(
+            "Staff login required. Open /login, then run the demo again for cashier and studio steps."
+          );
+        }
+        throw new Error(body.error ?? "Could not mark paid");
+      }
       await refreshOrder(activeOrder.id);
       setPhase("paid");
     } catch (err) {
@@ -181,7 +195,15 @@ export function DemoWalkthrough() {
         body: JSON.stringify({ status: "completed" }),
       });
 
-      if (!res.ok) throw new Error("Could not complete order");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          throw new Error(
+            "Staff login required. Open /login, then run the demo again for studio steps."
+          );
+        }
+        throw new Error(body.error ?? "Could not complete order");
+      }
       await refreshOrder(activeOrder.id);
       setPhase("done");
     } catch (err) {
@@ -379,7 +401,7 @@ export function DemoWalkthrough() {
         )}
 
         <p className="mt-auto text-center text-[11px] text-gem-mist/30">
-          Production: customers → /customize · staff → /pos & /admin
+          Production: customers → /customize · staff → /login then /pos & /admin
         </p>
       </main>
     </div>

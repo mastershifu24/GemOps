@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteDevComponent, updateDevComponent } from "@/lib/dev-components";
 import { isDevMode } from "@/lib/dev-orders";
-import { createApiClient } from "@/lib/supabase/api";
+import { requireStaffSession } from "@/lib/supabase/route-auth";
 import type { ComponentType } from "@/types/database";
 import type { Database } from "@/types/supabase";
 
@@ -31,13 +31,17 @@ export async function PATCH(
     return NextResponse.json({ ...updated, persisted: false });
   }
 
-  const supabase = createApiClient();
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
   const updates: ComponentUpdate = {
     ...body,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await auth.db
     .from("components")
     .update(updates)
     .eq("id", id)
@@ -65,8 +69,12 @@ export async function DELETE(
     return NextResponse.json({ ok: true, persisted: false });
   }
 
-  const supabase = createApiClient();
-  const { error } = await supabase.from("components").delete().eq("id", id);
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const { error } = await auth.db.from("components").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isDevMode, updateDevOrderStatus } from "@/lib/dev-orders";
 import { assertOrderTransition } from "@/lib/order-transitions";
-import { createApiClient } from "@/lib/supabase/api";
+import { requireStaffSession } from "@/lib/supabase/route-auth";
 import type { OrderStatus, PaymentMethod } from "@/types/database";
 import type { Database } from "@/types/supabase";
 
@@ -42,7 +42,12 @@ export async function PATCH(
     });
   }
 
-  const supabase = createApiClient();
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const supabase = auth.db;
   const { data: existing, error: fetchError } = await supabase
     .from("orders")
     .select("*")

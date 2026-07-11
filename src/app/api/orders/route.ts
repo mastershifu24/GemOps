@@ -7,7 +7,10 @@ import {
 } from "@/lib/dev-orders";
 import { toCreateOrderResponse } from "@/lib/order-response";
 import { calculateOrderTotalCents } from "@/lib/pricing";
-import { createApiClient } from "@/lib/supabase/api";
+import {
+  requireServiceClient,
+  requireStaffSession,
+} from "@/lib/supabase/route-auth";
 import type { Order, OrderSizingMetadata, OrderStatus, SlotAssignment } from "@/types/database";
 import type { Database, Json } from "@/types/supabase";
 
@@ -70,10 +73,13 @@ export async function POST(request: Request) {
     );
   }
 
-  try {
-    const supabase = createApiClient();
+  const serviceClient = requireServiceClient();
+  if (serviceClient instanceof NextResponse) {
+    return serviceClient;
+  }
 
-    const { data: existing } = await supabase
+  try {
+    const { data: existing } = await serviceClient
       .from("orders")
       .select("id, order_code, status, assembly_script, total_cents")
       .eq("order_code", orderCode)
@@ -97,7 +103,7 @@ export async function POST(request: Request) {
       sizing_metadata: (body.sizing_metadata ?? null) as unknown as Json,
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from("orders")
       .insert(payload)
       .select("id, order_code, status, assembly_script, total_cents")
@@ -105,7 +111,7 @@ export async function POST(request: Request) {
 
     if (error) {
       if (error.code === "23505") {
-        const replay = await supabase
+        const replay = await serviceClient
           .from("orders")
           .select("id, order_code, status, assembly_script, total_cents")
           .eq("order_code", orderCode)
@@ -135,8 +141,12 @@ export async function GET() {
     return NextResponse.json({ orders: listDevOrders(), persisted: false });
   }
 
-  const supabase = createApiClient();
-  const { data, error } = await supabase
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const { data, error } = await auth.db
     .from("orders")
     .select("*")
     .order("created_at", { ascending: false })

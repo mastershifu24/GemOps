@@ -4,7 +4,7 @@ import {
   listDevComponents,
 } from "@/lib/dev-components";
 import { isDevMode } from "@/lib/dev-orders";
-import { createApiClient } from "@/lib/supabase/api";
+import { requireStaffSession } from "@/lib/supabase/route-auth";
 import type { ComponentType } from "@/types/database";
 import type { Database, Json } from "@/types/supabase";
 
@@ -26,8 +26,12 @@ export async function GET() {
     });
   }
 
-  const supabase = createApiClient();
-  const { data, error } = await supabase
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const { data, error } = await auth.db
     .from("components")
     .select("*")
     .order("name");
@@ -62,7 +66,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ...component, persisted: false });
   }
 
-  const supabase = createApiClient();
+  const auth = await requireStaffSession();
+  if ("response" in auth) {
+    return auth.response;
+  }
+
   const payload: ComponentInsert = {
     name: body.name.trim(),
     component_type: body.component_type,
@@ -73,7 +81,7 @@ export async function POST(request: Request) {
     is_active: true,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await auth.db
     .from("components")
     .insert(payload)
     .select()
