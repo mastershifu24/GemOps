@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ProductModelViewer } from "@/components/customizer/ProductModelViewer";
+import { ArTryOnOverlay } from "@/components/ar/ArTryOnOverlay";
 import {
   useArBodyTracking,
   useArManualGestures,
@@ -15,13 +15,9 @@ interface CameraArPreviewProps {
   onClose: () => void;
   placement: ArPlacementHint;
   slots: SlotState[];
-  activeSlotIndex: number | null;
   layout: TemplateLayout;
   productType: ProductType;
-  previewLabel: string;
-  sequentialOnly?: boolean;
   strandCount?: StrandCount;
-  onSlotTap?: (index: number) => void;
 }
 
 type CameraFacing = "user" | "environment";
@@ -82,13 +78,9 @@ export function CameraArPreview({
   onClose,
   placement,
   slots,
-  activeSlotIndex,
   layout,
   productType,
-  previewLabel,
-  sequentialOnly,
   strandCount = 1,
-  onSlotTap,
 }: CameraArPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +159,7 @@ export function CameraArPreview({
   const pixelScale =
     (transform?.scale ?? ringSize * 0.42 * placement.overlay_scale) *
     manualAdjust.scaleMul;
-  const scaleFactor = pixelScale / ringSize;
+  const scaleFactor = Math.max(0.36, pixelScale / ringSize);
   const rotation = transform?.rotation ?? 0;
   const scaleX = transform?.scaleX ?? 1;
   const scaleY = transform?.scaleY ?? 1;
@@ -203,18 +195,11 @@ export function CameraArPreview({
         onTouchMove={gestures.onTouchMove}
         onTouchEnd={gestures.onTouchEnd}
       >
-        <ProductModelViewer
+        <ArTryOnOverlay
           slots={slots}
-          activeSlotIndex={activeSlotIndex}
           layout={layout}
           productType={productType}
-          centerLabel={previewLabel}
-          sequentialOnly={sequentialOnly}
           strandCount={strandCount}
-          onSlotTap={onSlotTap}
-          enableSpin={false}
-          flatOverlay
-          className="drop-shadow-[0_8px_32px_rgba(0,0,0,0.55)]"
         />
       </div>
 

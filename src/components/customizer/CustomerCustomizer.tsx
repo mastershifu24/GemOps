@@ -671,13 +671,9 @@ export function CustomerCustomizer() {
           onClose={() => setShowArPreview(false)}
           placement={getArPlacement(productType)}
           slots={slots}
-          activeSlotIndex={nextEmptyIndex}
           layout={previewLayout}
           productType={productType}
-          previewLabel={previewLabel}
-          sequentialOnly={sequentialOnly}
           strandCount={strandCount}
-          onSlotTap={handleRingSlotTap}
         />
 
         <section className="rounded-xl border border-white/10 bg-gem-slate/40 p-4">
