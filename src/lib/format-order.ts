@@ -8,7 +8,12 @@ export function formatSizingSummary(
   const parts: string[] = [];
   if (sizing.template_name) parts.push(sizing.template_name);
   if (sizing.length_label) parts.push(sizing.length_label);
-  if (sizing.strand_count === 2) parts.push("Double strand");
+  if (
+    sizing.strand_count === 2 &&
+    !sizing.template_name?.toLowerCase().includes("double strand")
+  ) {
+    parts.push("Double strand");
+  }
   if (sizing.measured_circumference_in != null) {
     parts.push(`Measured ${sizing.measured_circumference_in}"`);
   }

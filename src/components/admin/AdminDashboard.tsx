@@ -140,6 +140,45 @@ export function AdminDashboard() {
     }
   };
 
+  const handleCompleteAllStudio = async () => {
+    if (studioOrders.length === 0) return;
+
+    if (
+      !window.confirm(
+        `Mark all ${studioOrders.length} studio orders as complete? They will leave this queue but stay in the database.`
+      )
+    ) {
+      return;
+    }
+
+    setProcessingId("bulk-complete");
+    setError(null);
+
+    try {
+      for (const order of studioOrders) {
+        const res = await staffFetch(`/api/orders/${order.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "completed" }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            body.error ?? `Failed to complete order #${order.order_code}`
+          );
+        }
+      }
+
+      setSelectedOrderId(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear queue");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleAddComponent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -265,9 +304,23 @@ export function AdminDashboard() {
         ) : tab === "studio" ? (
           <div className="grid gap-6 lg:grid-cols-2">
             <section>
-              <h2 className="mb-4 text-xs uppercase tracking-[0.25em] text-gem-gold">
-                Incoming Orders
-              </h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-xs uppercase tracking-[0.25em] text-gem-gold">
+                  Incoming Orders
+                </h2>
+                {studioOrders.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={processingId !== null}
+                    onClick={handleCompleteAllStudio}
+                    className="shrink-0 text-xs text-gem-mist/40 underline underline-offset-4 transition hover:text-gem-mist disabled:opacity-50"
+                  >
+                    {processingId === "bulk-complete"
+                      ? "Clearing…"
+                      : `Clear queue (${studioOrders.length})`}
+                  </button>
+                )}
+              </div>
 
               {studioOrders.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/15 py-12 text-center">
