@@ -26,6 +26,8 @@ interface ProductModelViewerProps {
   onSlotTap?: (index: number) => void;
   className?: string;
   enableSpin?: boolean;
+  /** Flat 2D layout for camera AR overlay (no perspective tilt) */
+  flatOverlay?: boolean;
   /** 1 = single cord loop, 2 = intertwined double loops (bracelet only) */
   strandCount?: 1 | 2;
 }
@@ -40,6 +42,7 @@ export function ProductModelViewer({
   onSlotTap,
   className = "",
   enableSpin = true,
+  flatOverlay = false,
   strandCount = 1,
 }: ProductModelViewerProps) {
   const total = slots.length;
@@ -72,9 +75,9 @@ export function ProductModelViewer({
     >
       <div className="relative mx-auto aspect-square w-full max-w-[min(72vw,280px)]">
         <div
-          className={`product-preview-tilt absolute inset-0 ${
-            spinsRing ? "bracelet-ring-spin" : ""
-          }`}
+          className={`absolute inset-0 ${
+            flatOverlay ? "" : "product-preview-tilt"
+          } ${spinsRing ? "bracelet-ring-spin" : ""}`}
         >
           {showStrandThreads && (
             <>

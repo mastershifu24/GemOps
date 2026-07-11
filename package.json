@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/copy-mediapipe-wasm.mjs && next dev",
+    "build": "node scripts/copy-mediapipe-wasm.mjs && next build",
+    "postinstall": "node scripts/copy-mediapipe-wasm.mjs",
     "start": "next start",
     "lint": "next lint",
     "test:e2e": "playwright test",

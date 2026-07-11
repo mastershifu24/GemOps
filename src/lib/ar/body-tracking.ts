@@ -1,6 +1,12 @@
 import type { ProductType } from "@/types/database";
+import { getIosMajorVersion } from "@/lib/ar/capabilities";
 
 const WASM_CDN =
+  typeof window !== "undefined"
+    ? `${window.location.origin}/mediapipe/wasm`
+    : "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
+
+const WASM_CDN_FALLBACK =
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 
 const HAND_MODEL =
@@ -101,6 +107,26 @@ let poseLandmarkerPromise: Promise<PoseLandmarkerInstance | null> | null = null;
 
 type VisionDelegate = "GPU" | "CPU";
 
+function visionDelegates(): VisionDelegate[] {
+  const ios = getIosMajorVersion();
+  // iOS Safari GPU WebGL for MediaPipe is flaky — prefer CPU first
+  if (ios !== null) return ["CPU", "GPU"];
+  return ["GPU", "CPU"];
+}
+
+async function resolveVisionWasm(): Promise<string> {
+  if (typeof window === "undefined") return WASM_CDN_FALLBACK;
+  try {
+    const probe = await fetch(`${WASM_CDN}/vision_wasm_internal.js`, {
+      method: "HEAD",
+    });
+    if (probe.ok) return WASM_CDN;
+  } catch {
+    // same-origin wasm not deployed — CDN fallback
+  }
+  return WASM_CDN_FALLBACK;
+}
+
 async function createWithDelegate<T>(
   delegates: VisionDelegate[],
   create: (delegate: VisionDelegate) => Promise<T>
@@ -121,8 +147,9 @@ async function loadHandLandmarker(): Promise<HandLandmarkerInstance | null> {
     const { FilesetResolver, HandLandmarker } = await import(
       "@mediapipe/tasks-vision"
     );
-    const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
-    return createWithDelegate(["GPU", "CPU"], (delegate) =>
+    const wasmBase = await resolveVisionWasm();
+    const vision = await FilesetResolver.forVisionTasks(wasmBase);
+    return createWithDelegate(visionDelegates(), (delegate) =>
       HandLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: HAND_MODEL,
@@ -130,9 +157,9 @@ async function loadHandLandmarker(): Promise<HandLandmarkerInstance | null> {
         },
         runningMode: "VIDEO",
         numHands: 2,
-        minHandDetectionConfidence: 0.35,
-        minHandPresenceConfidence: 0.35,
-        minTrackingConfidence: 0.35,
+        minHandDetectionConfidence: 0.25,
+        minHandPresenceConfidence: 0.25,
+        minTrackingConfidence: 0.25,
       })
     );
   } catch (err) {
@@ -147,8 +174,9 @@ async function loadPoseLandmarker(): Promise<PoseLandmarkerInstance | null> {
     const { FilesetResolver, PoseLandmarker } = await import(
       "@mediapipe/tasks-vision"
     );
-    const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
-    return createWithDelegate(["GPU", "CPU"], (delegate) =>
+    const wasmBase = await resolveVisionWasm();
+    const vision = await FilesetResolver.forVisionTasks(wasmBase);
+    return createWithDelegate(visionDelegates(), (delegate) =>
       PoseLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: POSE_MODEL,
@@ -156,9 +184,9 @@ async function loadPoseLandmarker(): Promise<PoseLandmarkerInstance | null> {
         },
         runningMode: "VIDEO",
         numPoses: 1,
-        minPoseDetectionConfidence: 0.4,
-        minPosePresenceConfidence: 0.4,
-        minTrackingConfidence: 0.4,
+        minPoseDetectionConfidence: 0.35,
+        minPosePresenceConfidence: 0.35,
+        minTrackingConfidence: 0.35,
       })
     );
   } catch (err) {
@@ -169,14 +197,20 @@ async function loadPoseLandmarker(): Promise<PoseLandmarkerInstance | null> {
 
 export function getHandLandmarker(): Promise<HandLandmarkerInstance | null> {
   if (!handLandmarkerPromise) {
-    handLandmarkerPromise = loadHandLandmarker();
+    handLandmarkerPromise = loadHandLandmarker().then((instance) => {
+      if (!instance) handLandmarkerPromise = null;
+      return instance;
+    });
   }
   return handLandmarkerPromise;
 }
 
 export function getPoseLandmarker(): Promise<PoseLandmarkerInstance | null> {
   if (!poseLandmarkerPromise) {
-    poseLandmarkerPromise = loadPoseLandmarker();
+    poseLandmarkerPromise = loadPoseLandmarker().then((instance) => {
+      if (!instance) poseLandmarkerPromise = null;
+      return instance;
+    });
   }
   return poseLandmarkerPromise;
 }
@@ -207,8 +241,14 @@ function transformFromHand(
   const ringMcp = landmarks[13];
   const pinkyMcp = landmarks[17];
 
+  // Center on wrist joint (between wrist knuckle and palm)
+  const wristCenter = {
+    x: wrist.x * 0.55 + middleMcp.x * 0.45,
+    y: wrist.y * 0.55 + middleMcp.y * 0.45,
+  };
+
   const center = landmarkToViewport(
-    wrist,
+    wristCenter,
     video,
     viewportWidth,
     viewportHeight,
@@ -279,7 +319,10 @@ function transformFromPoseNeck(
 
   const shoulderWidthNorm = dist(leftShoulder, rightShoulder);
   const baseSize = Math.min(viewportWidth, viewportHeight);
-  const scale = Math.max(0.5, Math.min(1.5, shoulderWidthNorm * baseSize * 2.4));
+  const scale = Math.max(
+    baseSize * 0.35,
+    Math.min(baseSize * 0.95, shoulderWidthNorm * baseSize * 2.4)
+  );
 
   const rotation =
     (Math.atan2(
@@ -327,7 +370,10 @@ function transformFromPoseAnkle(
 
   const legLen = dist(ankle, knee);
   const baseSize = Math.min(viewportWidth, viewportHeight);
-  const scale = Math.max(0.35, Math.min(1.2, legLen * baseSize * 2.8));
+  const scale = Math.max(
+    baseSize * 0.2,
+    Math.min(baseSize * 0.55, legLen * baseSize * 2.8)
+  );
 
   const rotation =
     (Math.atan2(knee.y - ankle.y, knee.x - ankle.x) * 180) / Math.PI + 90;
@@ -372,7 +418,10 @@ function transformFromPoseWrist(
 
   const forearm = dist(wrist, elbow);
   const baseSize = Math.min(viewportWidth, viewportHeight);
-  const scale = Math.max(0.35, Math.min(1.3, forearm * baseSize * 3.5));
+  const scale = Math.max(
+    baseSize * 0.18,
+    Math.min(baseSize * 0.5, forearm * baseSize * 3.5)
+  );
 
   const rotation =
     (Math.atan2(elbow.y - wrist.y, elbow.x - wrist.x) * 180) / Math.PI + 90;

@@ -72,7 +72,7 @@ function anchorHint(
         : "Point the back camera at your ankle";
     default:
       return facing === "user"
-        ? "Hold your hand up to the front camera, wrist in the center"
+        ? "Hold your whole hand up — palm or back, fingers spread wide"
         : "Show your wrist to the camera — or tap Flip to use front camera";
   }
 }
@@ -106,6 +106,7 @@ export function CameraArPreview({
     modelsError,
     placementMode,
     manualOnlyReason,
+    scanHint,
     manualAdjust,
     setManualAdjust,
   } = useArBodyTracking(videoRef, open, productType, mirrorX);
@@ -212,6 +213,7 @@ export function CameraArPreview({
           strandCount={strandCount}
           onSlotTap={onSlotTap}
           enableSpin={false}
+          flatOverlay
           className="drop-shadow-[0_8px_32px_rgba(0,0,0,0.55)]"
         />
       </div>
@@ -233,7 +235,9 @@ export function CameraArPreview({
                   ? modelsError
                   : tracking
                     ? "Tracking locked — drag to fine-tune, pinch to resize"
-                    : "Center your body in frame — drag & pinch to adjust manually"}
+                    : scanHint
+                      ? scanHint
+                      : "Center your body in frame — drag & pinch to adjust manually"}
           </p>
         </div>
         <div className="pointer-events-auto flex shrink-0 flex-col gap-2">

@@ -39,6 +39,7 @@ export interface UseArBodyTrackingResult {
   modelsError: string | null;
   placementMode: ArPlacementMode;
   manualOnlyReason: string | null;
+  scanHint: string | null;
   manualAdjust: { dx: number; dy: number; scaleMul: number };
   setManualAdjust: React.Dispatch<
     React.SetStateAction<{ dx: number; dy: number; scaleMul: number }>
@@ -57,6 +58,7 @@ export function useArBodyTracking(
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [placementMode, setPlacementMode] = useState<ArPlacementMode>("tracking");
   const [manualOnlyReason, setManualOnlyReason] = useState<string | null>(null);
+  const [scanHint, setScanHint] = useState<string | null>(null);
   const [manualAdjust, setManualAdjust] = useState({
     dx: 0,
     dy: 0,
@@ -66,6 +68,8 @@ export function useArBodyTracking(
   const smoothedRef = useRef<ArOverlayTransform | null>(null);
   const lastDetectRef = useRef(0);
   const detectTimestampRef = useRef(0);
+  const detectInFlightRef = useRef(false);
+  const sessionStartRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -76,12 +80,16 @@ export function useArBodyTracking(
       setModelsError(null);
       setPlacementMode("tracking");
       setManualOnlyReason(null);
+      setScanHint(null);
       return;
     }
 
     setManualAdjust({ dx: 0, dy: 0, scaleMul: 1 });
     setModelsError(null);
+    setScanHint(null);
     detectTimestampRef.current = 0;
+    detectInFlightRef.current = false;
+    sessionStartRef.current = performance.now();
 
     const { mode, reason } = resolveArPlacementMode();
     setPlacementMode(mode);
@@ -97,6 +105,7 @@ export function useArBodyTracking(
 
     setModelsLoading(true);
     let trackingActive = true;
+    let cancelled = false;
 
     const trackingMode = pickTrackingMode(productType);
     const loaders =
@@ -104,8 +113,86 @@ export function useArBodyTracking(
         ? [getHandLandmarker(), getPoseLandmarker()]
         : [getPoseLandmarker(), getHandLandmarker()];
 
+    const startLoop = () => {
+      if (cancelled || !trackingActive) return;
+
+      const loop = (timestamp: number) => {
+        if (cancelled || !trackingActive) return;
+
+        const video = videoRef.current;
+        if (
+          !video ||
+          video.readyState < 2 ||
+          video.videoWidth <= 0 ||
+          video.videoHeight <= 0
+        ) {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+
+        if (detectInFlightRef.current) {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+
+        if (timestamp - lastDetectRef.current >= DETECT_INTERVAL_MS) {
+          lastDetectRef.current = timestamp;
+          const videoTs = Math.round(video.currentTime * 1000);
+          detectTimestampRef.current = Math.max(
+            detectTimestampRef.current + 1,
+            videoTs > 0 ? videoTs : Math.round(timestamp - sessionStartRef.current)
+          );
+
+          detectInFlightRef.current = true;
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+
+          detectArTransform(
+            video,
+            detectTimestampRef.current,
+            { productType, mirrorX },
+            vw,
+            vh
+          )
+            .then((detected) => {
+              if (cancelled) return;
+              if (detected) {
+                smoothedRef.current = lerpTransform(
+                  smoothedRef.current,
+                  detected
+                );
+                setTransform({ ...smoothedRef.current });
+                setTracking(true);
+                setScanHint(null);
+              } else {
+                setTracking(false);
+                if (smoothedRef.current) {
+                  setTransform({ ...smoothedRef.current });
+                }
+                if (trackingMode === "hand") {
+                  setScanHint(
+                    "Show your whole hand — palm or back, fingers spread"
+                  );
+                }
+              }
+            })
+            .catch(() => {
+              if (!cancelled) setTracking(false);
+            })
+            .finally(() => {
+              detectInFlightRef.current = false;
+            });
+        }
+
+        rafRef.current = requestAnimationFrame(loop);
+      };
+
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
     Promise.all(loaders)
       .then(async () => {
+        if (cancelled) return;
         const available = await arModelsAvailable();
         const needsHand = trackingMode === "hand";
         const needsPose = trackingMode === "pose";
@@ -127,56 +214,22 @@ export function useArBodyTracking(
           setModelsError(
             "Auto-tracking unavailable — drag & pinch to fit"
           );
+          return;
         }
+
+        if (trackingMode === "hand") {
+          setScanHint("Show your whole hand — palm or back, fingers spread");
+        }
+        startLoop();
       })
-      .finally(() => setModelsLoading(false));
-
-    const loop = (timestamp: number) => {
-      if (!trackingActive) return;
-      const video = videoRef.current;
-      if (!video || video.readyState < 2) {
-        rafRef.current = requestAnimationFrame(loop);
-        return;
-      }
-
-      if (timestamp - lastDetectRef.current >= DETECT_INTERVAL_MS) {
-        lastDetectRef.current = timestamp;
-        detectTimestampRef.current += DETECT_INTERVAL_MS;
-
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-
-        detectArTransform(
-          video,
-          detectTimestampRef.current,
-          { productType, mirrorX },
-          vw,
-          vh
-        )
-          .then((detected) => {
-            if (detected) {
-              smoothedRef.current = lerpTransform(
-                smoothedRef.current,
-                detected
-              );
-              setTransform({ ...smoothedRef.current });
-              setTracking(true);
-            } else {
-              setTracking(false);
-              if (smoothedRef.current) {
-                setTransform({ ...smoothedRef.current });
-              }
-            }
-          })
-          .catch(() => setTracking(false));
-      }
-
-      rafRef.current = requestAnimationFrame(loop);
-    };
-
-    rafRef.current = requestAnimationFrame(loop);
+      .finally(() => {
+        if (!cancelled) setModelsLoading(false);
+      });
 
     return () => {
+      cancelled = true;
+      trackingActive = false;
+      detectInFlightRef.current = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [open, productType, mirrorX, videoRef]);
@@ -188,6 +241,7 @@ export function useArBodyTracking(
     modelsError,
     placementMode,
     manualOnlyReason,
+    scanHint,
     manualAdjust,
     setManualAdjust,
   };
