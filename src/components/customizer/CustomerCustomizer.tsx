@@ -40,6 +40,7 @@ import { BulkActions } from "@/components/customizer/BulkActions";
 import { CheckoutScreen } from "@/components/customizer/CheckoutScreen";
 import { ClaspPicker } from "@/components/customizer/ClaspPicker";
 import { DesignControls } from "@/components/customizer/DesignControls";
+import { FinalizeErrorBanner } from "@/components/customizer/FinalizeErrorBanner";
 import { SplineViewer } from "@/components/customizer/SplineViewer";
 import { StrandStripBuilder } from "@/components/customizer/StrandStripBuilder";
 import { StonePalette } from "@/components/customizer/StonePalette";
@@ -90,6 +91,7 @@ export function CustomerCustomizer() {
     null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const finalizeOrderCodeRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showMeasureGuide, setShowMeasureGuide] = useState(false);
@@ -485,6 +487,7 @@ export function CustomerCustomizer() {
 
     setIsSubmitting(true);
     setError(null);
+    setFinalizeError(null);
 
     const layout = slots.filter((s): s is SlotAssignment => s !== null);
     const code = finalizeOrderCodeRef.current ?? generateOrderCode();
@@ -537,9 +540,14 @@ export function CustomerCustomizer() {
       setOrderCode(data.order_code ?? code);
       setOrderTotalCents(data.total_cents ?? totalCents);
       setLockedLengthLabel(lengthLabel);
+      setFinalizeError(null);
+      finalizeOrderCodeRef.current = null;
       setPhase("finalized");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not finalize order");
+      const message =
+        err instanceof Error ? err.message : "Could not finalize order";
+      setFinalizeError(message);
+      setError(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -559,6 +567,7 @@ export function CustomerCustomizer() {
 
   const handleStartOver = useCallback(() => {
     finalizeOrderCodeRef.current = null;
+    setFinalizeError(null);
     setPhase("designing");
     setOrderCode(null);
     setOrderTotalCents(0);
@@ -709,7 +718,16 @@ export function CustomerCustomizer() {
           />
         </section>
 
-        {error && (
+        {finalizeError && finalizeOrderCodeRef.current && (
+          <FinalizeErrorBanner
+            orderCode={finalizeOrderCodeRef.current}
+            message={finalizeError}
+            onRetry={handleFinalize}
+            retrying={isSubmitting}
+          />
+        )}
+
+        {error && !finalizeError && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error}
           </p>

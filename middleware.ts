@@ -15,6 +15,11 @@ function isSupabaseConfigured(): boolean {
   return Boolean(url && key && !url.includes("your-project"));
 }
 
+function isStaffAuthRequired(): boolean {
+  if (process.env.E2E_TEST_MODE === "1") return false;
+  return isSupabaseConfigured();
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -22,8 +27,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Skip auth gate in local dev when Supabase isn't wired up
-  if (!isSupabaseConfigured()) {
+  // Skip auth gate in local dev when Supabase isn't wired up, or during E2E
+  if (!isStaffAuthRequired()) {
     return NextResponse.next();
   }
 

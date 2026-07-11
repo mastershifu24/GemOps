@@ -12,16 +12,28 @@ interface DevOrderInput {
   sizing_metadata?: Order["sizing_metadata"];
 }
 
-const devOrders = new Map<string, Order>();
+const DEV_ORDERS_KEY = "__gemops_dev_orders__";
+
+function devOrders(): Map<string, Order> {
+  const globalStore = globalThis as typeof globalThis & {
+    [DEV_ORDERS_KEY]?: Map<string, Order>;
+  };
+  if (!globalStore[DEV_ORDERS_KEY]) {
+    globalStore[DEV_ORDERS_KEY] = new Map();
+  }
+  return globalStore[DEV_ORDERS_KEY];
+}
 
 export function isDevMode(): boolean {
+  if (process.env.E2E_TEST_MODE === "1") return true;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   return !url || !key || url.includes("your-project");
 }
 
 export function findDevOrderByCode(orderCode: string): Order | null {
-  for (const order of devOrders.values()) {
+  for (const order of devOrders().values()) {
     if (order.order_code === orderCode) return order;
   }
   return null;
@@ -58,12 +70,12 @@ export function createDevOrder(input: DevOrderInput): {
     completed_at: null,
   };
 
-  devOrders.set(id, order);
+  devOrders().set(id, order);
   return { order, idempotent: false };
 }
 
 export function listDevOrders(): Order[] {
-  return Array.from(devOrders.values()).sort(
+  return Array.from(devOrders().values()).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }
@@ -73,7 +85,7 @@ export function updateDevOrderStatus(
   status: OrderStatus,
   payment?: { payment_method: PaymentMethod; amount_paid_cents: number }
 ): { order: Order; noop: boolean } | { error: string } | null {
-  const order = devOrders.get(id);
+  const order = devOrders().get(id);
   if (!order) return null;
 
   const transition = assertOrderTransition(order.status, status);
@@ -97,6 +109,6 @@ export function updateDevOrderStatus(
     amount_paid_cents: payment?.amount_paid_cents ?? order.amount_paid_cents,
   };
 
-  devOrders.set(id, updated);
+  devOrders().set(id, updated);
   return { order: updated, noop: false };
 }

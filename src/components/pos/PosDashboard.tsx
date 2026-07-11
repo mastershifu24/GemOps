@@ -117,6 +117,38 @@ export function PosDashboard() {
     }
   };
 
+  const handleCancelOrder = async (order: Order) => {
+    if (
+      !window.confirm(
+        `Cancel order #${order.order_code}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setProcessingId(order.id);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to cancel order");
+      }
+
+      await fetchOrders();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not cancel order");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gem-ink">
       <header className="border-b border-white/10 bg-gem-slate px-6 py-5">
@@ -251,6 +283,14 @@ export function PosDashboard() {
                     {processingId === order.id
                       ? "Processing…"
                       : "Mark Paid & Send to Studio"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={processingId === order.id}
+                    onClick={() => handleCancelOrder(order)}
+                    className="text-center text-xs text-gem-mist/40 underline underline-offset-4 transition hover:text-red-300/80"
+                  >
+                    Cancel order
                   </button>
                   <p className="text-center text-xs text-gem-mist/30 sm:text-right">
                     Then check{" "}
