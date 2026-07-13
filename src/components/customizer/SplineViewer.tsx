@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductModelViewer } from "@/components/customizer/ProductModelViewer";
+import dynamic from "next/dynamic";
 import type { TemplateLayout } from "@/lib/template-layout";
 import type { ProductType, SlotState } from "@/types/database";
 
@@ -22,15 +22,30 @@ interface SplineViewerProps {
   strand?: StrandOverlayProps;
 }
 
+const GemstonePreview3D = dynamic(
+  () =>
+    import("@/components/customizer/GemstonePreview3D").then(
+      (m) => m.GemstonePreview3D
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full min-h-[240px] items-center justify-center">
+        <p className="text-sm text-gem-mist/50">Loading 3D preview…</p>
+      </div>
+    ),
+  }
+);
+
 /**
- * Live 3D product preview — always shows the chosen product shape.
- * Beads fill in real time as slot state changes; switching template swaps the model.
+ * Live 3D gemstone preview — beads update as the customer designs.
+ * (Name kept for compatibility; Spline scene optional later via model URLs.)
  */
 export function SplineViewer({ className = "", strand }: SplineViewerProps) {
   const hasStrand = strand !== undefined;
   const layout = strand?.layout ?? "linear";
   const productType = strand?.productType ?? "strand";
-  const previewKey = `${productType}-${layout}-${strand?.totalSlots ?? 0}-${strand?.slots.filter(Boolean).length ?? 0}`;
+  const previewKey = `${productType}-${layout}-${strand?.totalSlots ?? 0}-${strand?.strandCount ?? 1}`;
 
   return (
     <div
@@ -38,8 +53,8 @@ export function SplineViewer({ className = "", strand }: SplineViewerProps) {
       style={{ minHeight: hasStrand ? "300px" : "220px" }}
     >
       {hasStrand && strand ? (
-        <div className="absolute inset-0 flex items-center justify-center px-4 py-8">
-          <ProductModelViewer
+        <div className="absolute inset-0 flex items-center justify-center px-2 py-4">
+          <GemstonePreview3D
             key={previewKey}
             slots={strand.slots}
             activeSlotIndex={strand.activeSlotIndex}
@@ -58,7 +73,7 @@ export function SplineViewer({ className = "", strand }: SplineViewerProps) {
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gem-ink via-gem-ink/80 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-gem-ink via-gem-ink/70 to-transparent" />
     </div>
   );
 }

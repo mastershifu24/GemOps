@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@splinetool/react-spline"],
+  transpilePackages: [
+    "@splinetool/react-spline",
+    "three",
+    "@react-three/fiber",
+    "@react-three/drei",
+  ],
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
